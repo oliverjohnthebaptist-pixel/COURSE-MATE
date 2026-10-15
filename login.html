@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Sign in - CourseMate</title>
+    <link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<meta property="og:image" content="logo.png">
+<meta property="og:title" content="GradePadi - NOUN GPA Calculator">
+<meta property="og:description" content="GradePadi - NOUN CGPA Calculator, Past Questions, TMA, Summary">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#060D09;--card:#101E14;--line:#1C3324;--accent:#2AF598;--green:#0E7C3A;--green2:#0A6A31}
+*,*:before,*:after{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:#060D09;color:#E8F5EC;font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.page{min-height:100vh;display:grid;grid-template-columns:1.05fr 1fr;align-items:center;gap:24px;max-width:1180px;margin:0 auto;padding:28px 24px;position:relative}
+.page:before{content:"";position:fixed;inset:0;background:radial-gradient(60% 55% at 22% 45%,rgba(42,245,152,.16),transparent 70%),radial-gradient(40% 40% at 85% 10%,rgba(14,124,58,.18),transparent 70%);pointer-events:none;z-index:0}
+.brand{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;text-align:center}
+.brand img{width:min(360px,62%);height:auto;-webkit-mask-image:radial-gradient(ellipse 62% 62% at 50% 52%,#000 58%,transparent 100%);mask-image:radial-gradient(ellipse 62% 62% at 50% 52%,#000 58%,transparent 100%)}
+.word{font-family:'Plus Jakarta Sans',Inter,sans-serif;font-weight:800;font-size:clamp(38px,5.4vw,60px);letter-spacing:-.03em;margin:14px 0 4px;line-height:1.05}
+.word b{color:var(--accent)}
+.tag{font-size:12px;letter-spacing:.22em;color:#8BA89A;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 18px;margin-top:26px;font-size:13px;font-weight:600;color:#D5E6DB}
+.chips span{display:flex;align-items:center;gap:8px}
+.chips svg{width:18px;height:18px;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.chips i{width:1px;height:16px;background:var(--line);display:inline-block}
+.card{position:relative;z-index:1;background:#fff;color:#14201A;border-radius:22px;padding:30px 30px 22px;box-shadow:0 24px 70px rgba(0,0,0,.55);width:100%;max-width:440px;justify-self:center}
+.card h1{font-family:'Plus Jakarta Sans',Inter,sans-serif;font-size:30px;letter-spacing:-.02em;margin:0 0 4px;color:#0B1A12}
+.card .sub{margin:0 0 18px;color:#4A5A52;font-size:15px}
+label.f{display:block;font-size:13px;font-weight:600;margin:12px 0 6px;color:#14201A}
+.in{width:100%;height:46px;border:1px solid #D5DCD8;border-radius:10px;padding:0 14px;font:inherit;font-size:14.5px;background:#fff;color:#14201A;outline:none}
+.in:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(14,124,58,.15)}
+select.in{appearance:auto}
+.pw{position:relative}.pw .in{padding-right:46px}
+.eye{position:absolute;right:6px;top:5px;width:36px;height:36px;border:0;background:transparent;cursor:pointer;color:#5B6B63;display:grid;place-items:center;border-radius:8px}
+.eye svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.row{display:flex;justify-content:space-between;align-items:center;margin:14px 0 16px;font-size:13.5px}
+.row label{display:flex;gap:8px;align-items:center;cursor:pointer;color:#26352D}
+.row input{width:16px;height:16px;accent-color:var(--green)}
+a.lnk,button.lnk{color:var(--green);font-weight:700;text-decoration:none;background:none;border:0;cursor:pointer;font:inherit;font-weight:700;padding:0}
+.btn{width:100%;height:48px;border:0;border-radius:10px;background:linear-gradient(180deg,#12893F,#0B7335);color:#fff;font:inherit;font-weight:800;font-size:16px;cursor:pointer;box-shadow:0 6px 16px rgba(14,124,58,.35)}
+.btn:disabled{opacity:.7;cursor:wait}
+.msg{min-height:20px;margin:10px 0 0;font-size:13.5px;line-height:1.45}
+.msg.err{color:#C0362C}.msg.ok{color:#0E7C3A}
+.or{display:flex;align-items:center;gap:12px;margin:14px 0;color:#6B7A72;font-size:13px}
+.or:before,.or:after{content:"";flex:1;height:1px;background:#DDE3DF}
+.g{width:100%;height:48px;border:1px solid #CBD3CE;border-radius:10px;background:#fff;color:#14201A;font:inherit;font-weight:600;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px}
+.g:hover{background:#F5F8F6}.g svg{width:20px;height:20px}
+.alt{text-align:center;margin:16px 0 4px;font-size:14px;color:#3A4A42}
+.fine{text-align:center;font-size:11.5px;color:#6B7A72;margin:10px 0 0}
+.fine u{text-decoration-color:#9AA8A0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:900px){.page{grid-template-columns:1fr;gap:18px;padding:18px 16px 28px}.brand{order:0}.brand img{width:150px}.word{font-size:34px;margin-top:8px}.tag{font-size:10.5px}.chips{display:none}.card{padding:24px 20px 18px;border-radius:20px}.card h1{font-size:26px}}
+@media (max-width:420px){.two{grid-template-columns:1fr}}
+</style></head><body>
+<main class="page">
+<section class="brand"><img src="/logo-mascot.webp" alt="CourseMate robot mascot" width="360"><div class="word">Course<b>Mate</b></div><div class="tag">YOUR NOUN STUDY COMPANION</div><div class="chips"><span><svg viewBox="0 0 24 24"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2.5 9 2.5 12 0v-5"/></svg>Ask Questions</span><i></i><span><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg>Get Summaries</span><i></i><span><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0012 3z"/></svg>Learn Better</span></div></section>
+<section class="card">
+<h1>Welcome back</h1><p class="sub">Sign in to continue to CourseMate NOUN</p>
+<form id="f" autocomplete="on" novalidate>
+<label class="f" for="email">Email address</label><input class="in" id="email" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email">
+<label class="f" for="pass">Password</label><div class="pw"><input class="in" id="pass" type="password" placeholder="Enter your password" autocomplete="current-password"><button class="eye" type="button" aria-label="Show password" onclick="eye('pass',this)"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+<div class="row"><label><input type="checkbox" id="rem" checked> Remember me</label><button class="lnk" type="button" id="forgot">Forgot password?</button></div>
+<button class="btn" id="go" type="submit">Sign in</button>
+<div class="msg" id="msg" role="status"></div>
+</form>
+<div class="or">or continue with</div>
+<button class="g" type="button" onclick="google()"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>Continue with Gmail</button>
+<p class="alt">Don't have an account? <a class="lnk" href="/signup.html">Sign up</a></p>
+<p class="fine">By continuing, you agree to our <u>Terms</u> &bull; <u>Privacy Policy</u></p>
+</section></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/auth-fetch.js"></script>
+<script>
+const sb=window.supabase.createClient('https://lohjifbvrbnqxamroxtp.supabase.co','sb_publishable_-3UptBHer0fKyelp_a3z-g_jfflZF0l');
+const $=id=>document.getElementById(id);
+function say(t,ok){const m=$('msg');m.textContent=t||'';m.className='msg '+(t?(ok?'ok':'err'):'');}
+function eye(id,b){const i=$(id);i.type=i.type==='password'?'text':'password';b.style.color=i.type==='text'?'#0E7C3A':'#5B6B63';}
+async function google(){
+  try{const {error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+'/dashboard.html',queryParams:{prompt:'select_account'}}});if(error)throw error;}
+  catch(e){say('Gmail sign-in is not switched on yet: '+e.message);}
+}
+// no automatic redirect: if you are already signed in, just show a note with a link
+sb.auth.getSession().then(r=>{if(r&&r.data&&r.data.session){const m=$('msg');m.className='msg ok';m.innerHTML='You are already signed in. <a class="lnk" href="/dashboard.html">Open your dashboard</a>';}}).catch(()=>{});
+
+try{const e=localStorage.getItem('cm_email');if(e)$('email').value=e;}catch{}
+$('f').addEventListener('submit',async ev=>{
+  ev.preventDefault(); const email=$('email').value.trim(), pass=$('pass').value;
+  if(!email||!pass) return say('Enter your email and password.');
+  const b=$('go'); b.disabled=true; b.textContent='Signing in...'; say('');
+  try{
+    const {error}=await sb.auth.signInWithPassword({email,password:pass}); if(error) throw error;
+    try{ if($('rem').checked) localStorage.setItem('cm_email',email); else localStorage.removeItem('cm_email'); }catch{}
+    say('Welcome back! Opening your dashboard...',true); location.href='/dashboard.html';
+  }catch(e){ say(/Invalid login/i.test(e.message)?'Wrong email or password. Please check and try again.':(/not confirmed/i.test(e.message)?'Please confirm your email first. Check your inbox (and spam).':e.message)); b.disabled=false; b.textContent='Sign in'; }
+});
+$('forgot').onclick=async()=>{
+  const email=$('email').value.trim(); if(!email) return say('Type your email above first, then tap Forgot password.');
+  try{const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/public/html/reset-password.html'});if(error)throw error;say('Reset link sent to '+email+'. Check your inbox (and spam).',true);}catch(e){say(e.message);}
+};
+</script></body></html>

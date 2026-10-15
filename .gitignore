@@ -1,0 +1,8 @@
+node_modules/
+.env
+data/
+uploads/
+page_cache/
+summaries.json
+quiz_results.json
+*.tmp

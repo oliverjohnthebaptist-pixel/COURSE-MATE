@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auth - CourseMate</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<meta property="og:image" content="logo.png">
+<meta property="og:title" content="GradePadi - NOUN GPA Calculator">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#08130E;display:flex;align-items:center;justify-content:center;min-height:100vh;color:#E8EDE7}
+.box{width:100%;max-width:400px;background:#0F1E15;border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:28px}
+.tabs{display:flex;background:rgba(0,0,0,0.3);border-radius:999px;padding:4px;margin-bottom:20px}
+.tab{flex:1;padding:10px;text-align:center;border-radius:999px;cursor:pointer;color:#8CA898;font-weight:700;font-size:13px}
+.tab.active{background:#E8EDE7;color:#08130E}
+input{width:100%;padding:12px;border-radius:10px;background:#08130E;border:1px solid rgba(255,255,255,0.1);color:#fff;margin-bottom:10px}
+.btn{width:100%;padding:12px;border-radius:999px;background:#2AF598;color:#000;font-weight:800;border:none;cursor:pointer;margin-top:10px}
+</style></head>
+<body>
+<div class="box">
+<div style="font-weight:800;text-align:center;margin-bottom:16px;font-size:18px"><span style="color:#2AF598">Course</span>Mate</div>
+<div class="tabs"><div class="tab active" id="t1" onclick="sw('login')">Login</div><div class="tab" id="t2" onclick="sw('signup')">Sign Up</div></div>
+<div id="login"><input placeholder="Email"><input placeholder="Password" type="password"><button class="btn" onclick="alert('Login OK - connect to backend later')">Login</button></div>
+<div id="signup" style="display:none"><input placeholder="Full Name"><input placeholder="Email"><input placeholder="Password" type="password"><button class="btn" onclick="alert('Account Created - connect to backend later')">Create Account</button></div>
+<div style="text-align:center;margin-top:16px"><a href="../index.html" style="color:#8CA898;font-size:12px;text-decoration:none">← Back Home</a></div>
+</div>
+<script>
+function sw(m){
+  document.getElementById('t1').classList.toggle('active', m==='login');
+  document.getElementById('t2').classList.toggle('active', m==='signup');
+  document.getElementById('login').style.display = m==='login' ? 'block':'none';
+  document.getElementById('signup').style.display = m==='signup' ? 'block':'none';
+}
+const p=new URLSearchParams(location.search).get('mode');
+if(p==='signup') sw('signup');
+</script>
+</body></html>

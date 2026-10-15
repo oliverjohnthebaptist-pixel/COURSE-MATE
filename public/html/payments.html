@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Payment Review - CourseMate</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <script src="/js/auth-fetch.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#060D09;color:#E8F5EC;font:14px Inter,system-ui,sans-serif}
+    header{padding:18px 5%;background:#080E0A;border-bottom:1px solid #1C3324;display:flex;justify-content:space-between;align-items:center}
+    a{color:#2AF598}
+    main{max-width:1000px;margin:0 auto;padding:28px 16px}
+    h1{font-size:26px;margin:0 0 8px}
+    .muted{color:#9AB0A2;line-height:1.6}
+    .submission{background:#101E14;border:1px solid #1C3324;border-radius:16px;padding:18px;margin:16px 0}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+    button{border:0;border-radius:10px;padding:11px 15px;font-weight:800;cursor:pointer}
+    button:disabled{opacity:.55;cursor:wait}
+    .primary{background:#2AF598;color:#05210F}
+    .secondary{background:#17291E;color:#E8F5EC;border:1px solid #31513B}
+    .code{color:#2AF598;font-weight:800;font-size:16px}
+    .receipt-preview{display:none;width:100%;height:min(75vh,760px);margin-top:14px;border:1px solid #31513B;border-radius:12px;background:#fff}
+    .status{min-height:22px;margin:10px 0;color:#9AB0A2}
+  </style>
+</head>
+<body>
+  <header>
+    <strong>CourseMate · Payment Review</strong>
+    <a href="/dashboard.html">← Back to dashboard</a>
+  </header>
+  <main>
+    <h1>Payment review</h1>
+    <p class="muted">Administrators can review submitted payment receipts below. Students can <a href="/payment.html">submit a receipt or activate Starter on the payment page</a>.</p>
+    <section id="adminReview" style="display:none">
+      <h2 style="font-size:20px;margin:28px 0 8px">Admin payment review</h2>
+      <p id="adminStatus" class="status muted" role="status">Checking administrator access…</p>
+      <div id="submissions"></div>
+    </section>
+  </main>
+  <script src="/js/payments.js?v=3"></script>
+</body>
+</html>

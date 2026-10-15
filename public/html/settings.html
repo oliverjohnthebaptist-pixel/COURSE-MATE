@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Settings</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<meta property="og:image" content="logo.png">
+<meta property="og:title" content="GradePadi - NOUN GPA Calculator">
+<link rel="stylesheet" href="../css/tma.css">
+<script src="/js/auth-fetch.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+.topbar{
+  height:92px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  padding:0 18px!important;
+  background:#080E0A!important;
+  border-bottom:1px solid #1C3324!important;
+}
+.brand{display:flex!important;align-items:center!important;gap:14px!important}
+.logo-img{
+  width:80px!important;
+  height:80px!important;
+  border-radius:50%!important;
+  object-fit:cover!important;
+  border:3px solid #2AF598!important;
+  background:#0F2318!important;
+  display:block!important;
+}
+.brand-text h1{font-size:18px!important;color:white!important;margin:0!important;line-height:1!important}
+.brand-text p{font-size:9px!important;color:#2AF598!important;letter-spacing:1px!important;font-weight:700!important;margin-top:4px!important}
+.nav-wrap{background:#080E0A!important;padding:10px 18px!important;border-bottom:1px solid #1C3324!important}
+.nav{display:flex!important;gap:8px!important}
+.nav a{padding:8px 14px!important;border-radius:20px!important;background:#111F18!important;border:1px solid #1C3324!important;color:#8BA89A!important;text-decoration:none!important;font-size:12px!important}
+.nav a.active{background:#2AF598!important;color:#05210F!important;font-weight:800!important}
+.badge-acc{background:#2AF598;color:#05210F;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;display:inline-block;margin-left:8px}
+#status{color:#2AF598;font-size:11px;margin-top:8px;font-weight:700}
+.wrap{padding:18px; max-width:900px; margin:0 auto;}
+.card{background:#0F2318;border:1px solid #1C3324;border-radius:16px;padding:18px;margin-bottom:16px}
+.label{font-size:10px;color:#7A9A85;font-weight:700;letter-spacing:0.5px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">
+    <img class="logo-img" src="/logo.png?v=2" alt="C" onerror="this.src='../../logo.png'; this.onerror=null; this.src='/public/logo.png'">
+    <div class="brand-text"><h1>CourseMate</h1><p>NOUN • NATIONAL OPEN UNIVERSITY</p></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div style="text-align:right;line-height:1"><b style="font-size:12px;color:white;display:block">Oliver</b><span style="font-size:10px;color:#2AF598">Student</span></div>
+    <div style="width:38px;height:38px;border-radius:50%;background:#1A2F1E;border:1px solid #2AF598;display:grid;place-items:center;color:#2AF598;font-weight:800">O</div>
+  </div>
+</div>
+<div class="nav-wrap">
+  <div class="nav">
+    <a href="./dashboard.html">📊 Dashboard</a>
+    <a href="./materials.html">📚 Materials</a>
+    <a href="./tma.html">✅ TMA Solver</a>
+    <a href="./summary.html">📄 Summary</a>
+    <a href="./quiz.html">🎯 Quiz</a>
+    <a href="./chat.html">💬 AI Tutor</a>
+  </div>
+</div>
+<div class="wrap">
+  <div class="card">
+    <h2 style="font-size:14px;margin-bottom:12px">Account</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div><div style="font-size:11px;color:#7A9A85;font-weight:700">SIGNED IN AS</div><div id="who" style="font-size:13px;color:#E8F5EC;margin-top:2px">...</div></div>
+      <button id="logoutBtn" style="cursor:pointer;background:#ff4d4d;border:none;color:#fff;padding:11px 22px;border-radius:10px;font-size:13px;font-weight:800">Log out</button>
+    </div>
+    <div id="outMsg" style="color:#7A9A85;font-size:11px;margin-top:10px;min-height:14px"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:14px;margin-bottom:4px">Study Preferences</h2>
+    <div style="font-size:12px;color:#7A9A85;margin-bottom:6px">Used as the defaults on the Quiz and AI Tutor pages.</div>
+    <label class="label" style="display:block;margin-top:12px;margin-bottom:6px">DEFAULT NUMBER OF QUIZ QUESTIONS (MINIMUM 20)</label>
+    <div id="countChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    <label class="label" style="display:block;margin-top:12px;margin-bottom:6px">DEFAULT QUIZ LEVEL</label>
+    <div id="levelChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;color:#C5D9CC;cursor:pointer"><input type="checkbox" id="gen" style="accent-color:#2AF598"> Allow general knowledge in AI Tutor by default</label>
+    <div id="saved" style="color:#2AF598;font-size:11px;margin-top:10px;font-weight:700;min-height:14px"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:14px;margin-bottom:12px">Your Study Data</h2>
+    <div id="stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:14px;margin-bottom:4px">Manage Data</h2>
+    <div style="font-size:12px;color:#7A9A85;margin-bottom:12px">Your uploaded PDFs are not deleted here - remove those from the Materials page.</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button onclick="wipe('quiz')" style="text-align:left;cursor:pointer;background:transparent;border:1px solid #ff4d4d;color:#ff4d4d;padding:11px 14px;border-radius:10px;font-size:12px;font-weight:700">Clear all quiz results</button>
+      <button onclick="wipe('chat')" style="text-align:left;cursor:pointer;background:transparent;border:1px solid #ff4d4d;color:#ff4d4d;padding:11px 14px;border-radius:10px;font-size:12px;font-weight:700">Clear all AI Tutor conversations</button>
+      <button onclick="wipe('tma')" style="text-align:left;cursor:pointer;background:transparent;border:1px solid #ff4d4d;color:#ff4d4d;padding:11px 14px;border-radius:10px;font-size:12px;font-weight:700">Clear all TMA answers</button>
+    </div>
+    <div id="wiped" style="color:#2AF598;font-size:11px;margin-top:10px;font-weight:700;min-height:14px"></div>
+  </div>
+</div>
+<script src="../js/cm.js"></script>
+<script>
+const DL={mixed:'Mixed',easy:'Easy',medium:'Medium',hard:'Hard'}; let p=CM.prefs();
+function chips(){
+  document.getElementById('countChips').innerHTML=[20,30,40,50].map(n=>CM.chip(n,p.quizCount===n,`upd('quizCount',${n})`)).join('');
+  document.getElementById('levelChips').innerHTML=['mixed','easy','medium','hard'].map(d=>CM.chip(DL[d],p.quizLevel===d,`upd('quizLevel','${d}')`)).join('');
+  document.getElementById('gen').checked=p.chatGeneral;
+}
+function upd(k,v){ p[k]=v; localStorage.setItem('cm_prefs',JSON.stringify(p)); chips(); const s=document.getElementById('saved'); s.textContent='Saved'; setTimeout(()=>s.textContent='',1500); }
+document.getElementById('gen').onchange=e=>upd('chatGeneral',e.target.checked);
+chips();
+
+async function stats(){
+  try{
+    const d=await (await fetch('/api/stats')).json();
+    const c=(n,l)=>`<div style="background:#0E2016;border:1px solid #1C3324;border-radius:12px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:800;color:#2AF598">${n}</div><div style="font-size:10px;color:#7A9A85;font-weight:700;margin-top:2px">${l}</div></div>`;
+    document.getElementById('stats').innerHTML=c(d.materials,'MATERIALS')+c(d.tma_solved,'TMA ANSWERS')+c(d.summaries,'UNITS SUMMARISED')+c(d.quizzes,'QUIZZES GENERATED')+c(d.quiz_attempts||0,'QUIZ ATTEMPTS')+c(d.quiz_attempts?d.avg_score+'%':'-','AVERAGE SCORE');
+  }catch{ document.getElementById('stats').textContent='Could not load your data.'; }
+}
+stats();
+async function wipe(what){
+  const names={quiz:'ALL quiz results',chat:'ALL AI Tutor conversations',tma:'ALL saved TMA answers'};
+  if(!confirm('Clear '+names[what]+'? This cannot be undone.')) return;
+  if(what==='quiz') await fetch('/api/quiz/clear',{method:'POST'});
+  if(what==='chat') Object.keys(localStorage).filter(k=>k.startsWith('cm_tutor_')||k.startsWith('cm_chat_')).forEach(k=>localStorage.removeItem(k));
+  if(what==='tma'){ const d=await (await fetch('/api/materials')).json(); await Promise.all((d.materials||[]).map(m=>fetch('/api/tma/clear/'+m.id,{method:'POST'}))); }
+  const w=document.getElementById('wiped'); w.textContent='Cleared.'; setTimeout(()=>w.textContent='',2000); stats();
+}
+
+// ---- Account / Log out (same Supabase project as the dashboard) ----
+let sb=null; try{ sb=window.supabase.createClient('https://lohjifbvrbnqxamroxtp.supabase.co','sb_publishable_-3UptBHer0fKyelp_a3z-g_jfflZF0l'); }catch{}
+(async()=>{ try{ const {data:{user}}=await sb.auth.getUser(); document.getElementById('who').textContent=user?user.email:'Not signed in'; }catch{ document.getElementById('who').textContent='Signed in'; } })();
+document.getElementById('logoutBtn').onclick=async()=>{
+  if(!confirm('Log out of CourseMate?')) return;
+  const b=document.getElementById('logoutBtn'); b.disabled=true; b.textContent='Logging out...';
+  try{ if(sb) await sb.auth.signOut(); }catch(e){ console.error(e); }
+  try{ localStorage.removeItem('coursemate_user'); Object.keys(localStorage).filter(k=>k.startsWith('sb-')).forEach(k=>localStorage.removeItem(k)); sessionStorage.clear(); }catch{}
+  location.href='../../index.html';
+};
+
+</script>
+</body>
+</html>

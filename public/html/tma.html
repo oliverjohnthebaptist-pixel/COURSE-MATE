@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TMA Solver - CourseMate</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<meta property="og:image" content="logo.png">
+<meta property="og:title" content="GradePadi - NOUN GPA Calculator">
+<meta property="og:description" content="GradePadi - NOUN CGPA Calculator, Past Questions, TMA, Summary">
+<script src="/js/auth-fetch.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#060D09;color:#E8F5EC;font-family:'Inter',sans-serif;min-height:100vh}
+.topbar{height:92px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:#080E0A;border-bottom:1px solid #1C3324;position:sticky;top:0;z-index:100;gap:12px}
+.brand{display:flex;align-items:center;gap:14px;text-decoration:none}
+.logo-img{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #2AF598;background:#0F2318;display:block}
+.logo-fallback{width:80px;height:80px;border-radius:50%;background:#0F2318;border:3px solid #2AF598;display:none;place-items:center;font-weight:900;color:#2AF598;font-size:32px}
+.brand-text h1{font-size:18px;color:white;line-height:1}
+.brand-text p{font-size:9px;color:#2AF598;letter-spacing:1px;font-weight:700;margin-top:4px}
+.profile{position:relative;display:flex;align-items:center;gap:10px;flex-shrink:0;cursor:pointer}
+.profile-text{text-align:right;line-height:1.1}
+.profile-text b{display:block;font-size:12px;color:white}
+.profile-text span{font-size:10px;color:#2AF598}
+.avatar{width:42px;height:42px;border-radius:50%;background:#1A2F1E;border:2px solid #2AF598;display:grid;place-items:center;color:#2AF598;font-weight:800;font-size:13px;overflow:hidden;position:relative}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.avatar .cam{position:absolute;inset:0;background:rgba(0,0,0,0.5);display:none;place-items:center;font-size:14px}
+.avatar:hover .cam{display:grid}
+.dropdown{position:absolute;top:56px;right:0;width:260px;background:#0F1E15;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:12px;box-shadow:0 20px 40px rgba(0,0,0,0.5);display:none;z-index:200;animation:pop 0.25s ease}
+.dropdown.show{display:block}
+@keyframes pop{from{opacity:0;transform:translateY(-10px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+.drop-header{display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:8px}
+.drop-avatar{width:48px;height:48px;border-radius:50%;background:#2AF598;color:#08130E;display:grid;place-items:center;font-weight:800;overflow:hidden}
+.drop-item{padding:10px 12px;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:13px;color:#9AB0A2;cursor:pointer;transition:0.2s}
+.drop-item:hover{background:#13281D;color:#E8F5EC}
+.drop-item.danger{color:#ff6b6b}
+.drop-divider{height:1px;background:rgba(255,255,255,0.06);margin:6px 0}
+.nav-wrap{background:#080E0A;padding:10px 18px;border-bottom:1px solid #1C3324;overflow-x:auto;position:sticky;top:92px;z-index:90}
+.nav{display:flex;gap:8px;max-width:1100px;margin:0 auto}
+.nav a{padding:8px 14px;border-radius:20px;background:#111F18;border:1px solid #1C3324;color:#8BA89A;text-decoration:none;font-size:12px;white-space:nowrap;font-weight:600;transition:0.2s}
+.nav a:hover{background:#13281D;color:#fff}
+.nav a.active{background:#2AF598;color:#05210F;border-color:#2AF598;font-weight:800}
+.wrap{padding:18px;max-width:1100px;margin:0 auto}
+.card{background:#101E14;border:1px solid #1C3324;border-radius:16px;padding:18px;margin-bottom:16px}
+.label{font-size:10px;color:#7A9A85;font-weight:700;letter-spacing:0.5px}
+.badge-acc{background:#2AF598;color:#05210F;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;display:inline-block;margin-left:8px}
+#status{color:#2AF598;font-size:11px;margin-top:8px;font-weight:700}
+#ocrWrap{margin-top:14px;background:#1a1405;border:1px solid #8a6415;border-radius:12px;padding:12px;color:#ffcf70;font-size:11px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/dashboard.html" class="brand">
+    <img class="logo-img" id="logoImg" src="/logo.png?v=2" alt="CourseMate" onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='grid'">
+    <div id="logoFallback" class="logo-fallback">C</div>
+    <div class="brand-text"><h1>CourseMate</h1><p>NOUN • NATIONAL OPEN UNIVERSITY</p></div>
+  </a>
+  <div class="profile" id="avatarWrap">
+    <div class="profile-text"><b id="profName">Oliver</b><span id="profPlan">Student • Free 3 PDFs</span></div>
+    <div class="avatar" id="profAvatar"><img id="avatarPhoto" alt="" style="display:none"><span id="avatarLetter">O</span></div>
+    <div class="dropdown" id="avatarDropdown">
+      <div class="drop-header"><div class="drop-avatar" id="dropAvatar"><span id="dropAvatarLetter">O</span></div><div><div style="font-weight:700;font-size:13px" id="dropName">Oliver John</div><div style="font-size:11px;color:#8BA89A" id="dropEmail">oliver@email.com</div><div style="font-size:10px;color:#2AF598;margin-top:2px" id="dropPlanBadge">Free • 0/3 PDFs</div></div></div>
+      <div class="drop-item" onclick="location.href='settings.html'"><span>👤</span> My Profile</div>
+      <div class="drop-item" onclick="location.href='settings.html'"><span>⚙</span> Settings</div>
+      <div class="drop-item" onclick="handleUploadPhoto()"><span>📷</span> Change profile photo</div>
+      <div class="drop-item" onclick="location.href='../../index.html#pricing'"><span>💳</span> Billing - Starter 7 PDFs ₦4,500</div>
+      <div class="drop-divider"></div>
+      <div class="drop-item danger" onclick="handleLogout()"><span>🚪</span> Logout</div>
+      <input type="file" id="avatarInput" accept="image/*" hidden>
+    </div>
+  </div>
+</div>
+
+<!-- FIXED NAV BAR - NO BASE64 BUG, SAME AS DASHBOARD -->
+<div class="nav-wrap">
+  <div class="nav">
+    <a href="./dashboard.html">📊 Dashboard</a>
+    <a href="./materials.html">📚 Materials (Safe)</a>
+    <a href="./summary.html">📄 Summary</a>
+    <a href="./tma.html" class="active" aria-current="page">✅ TMA Solver</a>
+    <a href="./quiz.html">🎯 Quiz</a>
+    <a href="./chat.html">💬 AI Tutor</a>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="card">
+    <h2 style="font-size:14px;margin-bottom:12px">Solve TMA From Your Material <span id="accBadge" class="badge-acc">0 accumulated</span></h2>
+    <label class="label">SELECT COURSE MATERIAL (FROM YOUR UPLOADS)</label>
+    <select id="matSelect" style="width:100%;padding:12px;border-radius:10px;background:#08130D;color:white;border:1px solid #1C3324;margin-top:6px"></select>
+    <div id="uploadSlot"></div>
+    <label class="label" style="display:block;margin-top:12px;margin-bottom:6px">PASTE YOUR TMA QUESTIONS - SINGLE OR BATCH (Auto-Detect)</label>
+    <textarea id="qInput" style="width:100%;min-height:160px;background:#08130D;color:white;border:1px solid #1C3324;border-radius:10px;padding:12px" placeholder="Paste your TMA / quiz questions here (single or batch)"></textarea>
+    <div id="status"></div>
+    <div id="ocrWrap">Scanned/image-only PDFs are not OCR-processed. Upload a searchable PDF with selectable text to use the TMA solver.</div>
+    <button id="solveBtn" style="width:100%;margin-top:12px;height:44px;background:#2AF598;border:none;border-radius:10px;font-weight:800;cursor:pointer">Solve From Material</button>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <h2 style="font-size:14px" id="ansHeader">Answers From Your Material</h2>
+      <div>
+        <button id="exportBtn" style="display:none;background:#111F18;border:1px solid #1C3324;color:#2AF598;padding:6px 12px;border-radius:20px;font-size:11px;cursor:pointer">⬇ Download PDF (CourseMate Letterhead)</button>
+        <button id="clearBtn" onclick="clearHistory()" style="background:transparent;border:1px solid #ff4d4d;color:#ff4d4d;padding:6px 12px;border-radius:20px;font-size:11px;cursor:pointer;margin-left:6px">Clear</button>
+      </div>
+    </div>
+    <div id="out"><div style="text-align:center;color:#7A9A85;padding:20px">No answers yet. Select YOUR uploaded PDF (not Demo) and click Solve.<br><small>Paste 1 question or 20 questions together - it auto-detects and accumulates per course.</small></div></div>
+  </div>
+
+  <div class="card" id="allAccCard" style="display:none">
+    <h2 style="font-size:13px;color:#2AF598;margin-bottom:12px">📦 All Accumulated For This Course (For PDF Export)</h2>
+    <div id="allAccList"></div>
+  </div>
+</div>
+
+<script src="../js/cm.js"></script>
+<script src="/js/letterhead.js"></script>
+<script>
+const supabaseClient = window.supabase.createClient('https://lohjifbvrbnqxamroxtp.supabase.co','sb_publishable_-3UptBHer0fKyelp_a3z-g_jfflZF0l');
+let currentAnswers=[], allAccumulated=[], currentTitle='', currentId='', currentUser=null;
+const sel=document.getElementById('matSelect');
+
+async function initUser(){
+  try{
+    const {data:{user}} = await supabaseClient.auth.getUser();
+    if(user){
+      currentUser=user;
+      const {data:profile} = await supabaseClient.from('profiles').select('*').eq('id',user.id).single();
+      let fullName = profile?.full_name || profile?.email || user?.user_metadata?.full_name || user?.email || "Student";
+      fullName = fullName.split('@')[0] || "Student";
+      const firstName = fullName.split(' ')[0] || "Student";
+      document.getElementById('profName').textContent = firstName;
+      document.getElementById('dropName').textContent = profile?.full_name || fullName;
+      document.getElementById('dropEmail').textContent = profile?.email || user?.email || "";
+      const letter = firstName[0]?.toUpperCase() || "S";
+      document.getElementById('avatarLetter').textContent = letter;
+      document.getElementById('dropAvatarLetter').textContent = letter;
+      document.getElementById('profPlan').textContent=`${profile?.plan||'Free'} Plan • Student`;
+      const savedAvatar = localStorage.getItem(`avatar_${user.id}`) || profile?.avatar_url;
+      if(savedAvatar){
+        document.getElementById('avatarPhoto').src=savedAvatar;
+        document.getElementById('avatarPhoto').style.display='block';
+        document.getElementById('avatarLetter').style.display='none';
+        document.getElementById('dropAvatar').innerHTML=`<img src="${savedAvatar}" style="width:100%;height:100%;object-fit:cover">`;
+      }
+    }
+  }catch(e){
+    console.error('Could not load TMA profile:',e);
+    document.getElementById('status').textContent='Profile could not be loaded. Your course materials may still be available.';
+    document.getElementById('status').style.color='#ffb347';
+  }
+  setupAvatar();
+  await loadMats();
+}
+
+function setupAvatar(){
+  const wrap=document.getElementById('avatarWrap');
+  const avatar=document.getElementById('profAvatar');
+  const dd=document.getElementById('avatarDropdown');
+  const input=document.getElementById('avatarInput');
+  avatar.addEventListener('click',(e)=>{ e.stopPropagation(); dd.classList.toggle('show'); });
+  wrap.addEventListener('click',(e)=>{ if(e.target.closest('.avatar')||e.target.closest('.profile-text')) dd.classList.toggle('show'); });
+  document.addEventListener('click',(e)=>{ if(!wrap.contains(e.target)) dd.classList.remove('show'); });
+  input.addEventListener('change',handleAvatarUpload);
+}
+function handleUploadPhoto(){ document.getElementById('avatarInput').click(); }
+function handleAvatarUpload(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  if(file.size>5*1024*1024){ alert('Image too large. Max 5MB'); return; }
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const image=ev.target.result;
+    const photo=document.getElementById('avatarPhoto');
+    photo.src=image;
+    photo.style.display='block';
+    document.getElementById('avatarLetter').style.display='none';
+    document.getElementById('dropAvatar').innerHTML=`<img src="${image}" style="width:100%;height:100%;object-fit:cover">`;
+    if(currentUser) localStorage.setItem(`avatar_${currentUser.id}`,image);
+    document.getElementById('avatarDropdown').classList.remove('show');
+  };
+  reader.readAsDataURL(file);
+}
+async function handleLogout(){
+  if(!confirm('Logout?')) return;
+  await supabaseClient.auth.signOut();
+  localStorage.clear();
+  location.href='../../index.html';
+}
+window.handleLogout=handleLogout;
+window.handleUploadPhoto=handleUploadPhoto;
+
+async function loadMats(){
+  try{
+    const r=await fetch('/api/materials');
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||`Server error ${r.status}`);
+    const mats = Array.isArray(d.materials)?d.materials:[];
+    if(!mats.length){
+      sel.innerHTML='<option value="">No material - Go upload in Materials page</option>';
+      currentId='';
+      currentTitle='';
+      await loadHistory('');
+      document.getElementById('status').textContent='Upload a course PDF to get started.';
+      return;
+    }
+    sel.innerHTML='<option value="">-- Select your course material --</option>'+mats.map(m=>`<option value="${esc(m.id)}">${esc(m.title||m.file_name||'Untitled material')} - ${esc(m.page_count||0)} pages</option>`).join('');
+    // FIX: Auto-select from dashboard ?mat=id
+    const params = new URLSearchParams(window.location.search);
+    const matFromDashboard = params.get('mat') || localStorage.getItem('selected_material');
+    if(matFromDashboard && mats.find(m=>m.id===matFromDashboard)){
+      sel.value=matFromDashboard;
+      localStorage.setItem('selected_material',matFromDashboard);
+      document.getElementById('status').textContent=`✅ ${mats.find(m=>m.id===matFromDashboard).title} selected`;
+    } else {
+      sel.value=mats[0].id;
+    }
+    currentId = sel.value;
+    currentTitle = sel.options[sel.selectedIndex]?.text || '';
+    await loadHistory(currentId);
+    sel.onchange = () => {
+      localStorage.setItem('selected_material',sel.value);
+      currentId=sel.value;
+      currentTitle=sel.options[sel.selectedIndex]?.text||'';
+      document.getElementById('out').innerHTML='<div style="text-align:center;color:#7A9A85;padding:20px">Select a course and paste your TMA questions to begin.</div>';
+      document.getElementById('status').textContent='';
+      loadHistory(currentId);
+    };
+  }catch(e){
+    sel.innerHTML='<option value="">Failed to load materials</option>';
+    currentId='';
+    currentTitle='';
+    await loadHistory('');
+    document.getElementById('status').textContent='Could not load materials: '+e.message;
+    document.getElementById('status').style.color='#ff6b6b';
+  }
+}
+if(window.CM && CM.uploader){ CM.uploader(document.getElementById('uploadSlot'),{reload:()=>loadMats()}); }
+
+let historyRequest=0;
+async function loadHistory(mid){
+  const request=++historyRequest;
+  allAccumulated=[];
+  currentAnswers=[];
+  document.getElementById('accBadge').textContent='0 accumulated';
+  document.getElementById('allAccCard').style.display='none';
+  document.getElementById('exportBtn').style.display='none';
+  document.getElementById('allAccList').innerHTML='';
+  if(!mid){
+    return;
+  }
+  try{
+    const r=await fetch('/api/tma/history/'+encodeURIComponent(mid));
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.error||`Server error ${r.status}`);
+    if(request!==historyRequest || mid!==currentId) return;
+    allAccumulated = data.answers||[];
+    currentAnswers = allAccumulated;
+    document.getElementById('accBadge').textContent = `${data.total||0} accumulated`;
+    if(allAccumulated.length>0){
+      document.getElementById('allAccCard').style.display='block';
+      document.getElementById('exportBtn').style.display='inline-block';
+      document.getElementById('allAccList').innerHTML = allAccumulated.map((it,i)=>answerCard(it,i)).join('');
+    } else {
+      document.getElementById('allAccCard').style.display='none';
+      document.getElementById('exportBtn').style.display='none';
+      document.getElementById('allAccList').innerHTML='';
+    }
+  }catch(e){
+    if(request===historyRequest && mid===currentId){
+      document.getElementById('status').textContent='Could not load saved answers: '+e.message;
+      document.getElementById('status').style.color='#ff6b6b';
+    }
+  }
+}
+
+const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cleanTitle=()=>(currentTitle||'').replace(/\s+-\s+\d+\s+pages?$/i,'')||'uploaded';
+const pageOf=it=>{ const m=String(it.ref||'').match(/^(~?p\.\d+)/i); return m?m[1].replace(/^~?p/i,x=>x.startsWith('~')?'~P':'P'):''; };
+let run={info:null,liveText:'',qSeen:0,tab:'steps'}, liveAnswers=[];
+
+function answerCard(it,i){
+  const nf = it.found===false;
+  const isGeneral = it.isGeneral===true;
+  const opts = it.options||{};
+  const letters=['a','b','c','d'].filter(l=>opts[l]);
+  const pick=(it.answer_letter||'').toLowerCase();
+  const optLine = letters.length ? `<div style="font-size:13px;color:#C5D9CC;line-height:1.6;margin-top:3px">Options: ${letters.map(l=>{const t=`${l.toUpperCase()} ${esc(opts[l])}`; return (!nf&&!isGeneral&&l===pick)?`<b style="color:#fff">${t}</b>`:t;}).join(', ')}</div>` : '';
+  const pg=pageOf(it);
+  const generalBadge = isGeneral ? `<div style="background:#ff9800;color:#000;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;display:inline-block;margin-bottom:8px">⚠ NOT FROM YOUR PDF - General Knowledge</div>` : '';
+  const borderColor = isGeneral ? '#ff9800' : nf ? '#ff6b6b' : '#1C3324';
+  const bgColor = isGeneral ? '#2a1f0f' : '#08130D';
+  const quote = (!nf && !isGeneral && it.evidence) ? `<div style="font-size:13px;font-style:italic;color:#8BA89A;line-height:1.65;margin:0 0 10px">"${pg?esc(pg.toUpperCase())+': ':''}${esc(it.evidence)}"</div>` : '';
+  const ans = (it.answer_letter==='•') ? `Answer: ${esc(it.answer||'N/A')}` : `Answer: ${esc(it.answer||'N/A')}`;
+  const note = isGeneral ? `<div style="font-size:12px;color:#ffb347;margin-top:8px;background:#1a1405;padding:8px;border-radius:8px;border:1px solid #ff9800">⚠ ${esc(it.warning||it.why||'This answer is NOT from your PDF - please confirm with lecturer.')}</div>` : nf ? `<div style="font-size:12px;color:#ffb347;margin-top:6px">${esc(it.why||'The uploaded material does not contain this, so it was not guessed.')}</div>` : (it.check ? '<div style="font-size:12px;color:#ffb347;margin-top:6px">Check this one against the page shown.</div>' : '');
+  return `<div style="margin-bottom:26px;background:${bgColor};border:1px solid ${borderColor};border-radius:12px;padding:12px">${generalBadge}<div style="font-weight:800;font-size:14px;line-height:1.5;color:#fff;margin-bottom:8px">${i+1}. ${esc(it.question||'Question '+(i+1))}</div>${quote}<div style="font-weight:800;font-size:14px;color:${nf||isGeneral?'#ffb347':'#fff'}">${ans}</div>${optLine}${note}${it.ref ? `<div style="font-size:10px;color:#5a7a65;margin-top:6px">Ref: ${esc(it.ref)}</div>` : ''}</div>`;
+}
+
+function handleEvent(ev){
+  if(ev.type==='step'){
+    if(ev.info) run.info=ev.info;
+    if(ev.id==='search' && ev.state==='active') { run.qSeen=Math.max(run.qSeen,ev.index||1); run.liveText=ev.text; }
+    document.getElementById('status').textContent=ev.text;
+  } else if(ev.type==='answer'){ liveAnswers.push(ev.answer); }
+}
+
+document.getElementById('solveBtn').onclick=async()=>{
+  const text=document.getElementById('qInput').value.trim();
+  const id=sel.value;
+  if(!id) return alert('Go to Materials page and upload your PDF first!');
+  if(!text || text.length < 10) return alert('Paste your TMA questions first!');
+  currentTitle=sel.options[sel.selectedIndex]?.text||'';
+  currentId=id;
+  const btn=document.getElementById('solveBtn'); btn.textContent='Working from your PDF...'; btn.disabled=true;
+  sel.disabled=true;
+  document.getElementById('clearBtn').disabled=true;
+  document.getElementById('exportBtn').disabled=true;
+  const uploadBtn=document.querySelector('.cm-up-btn');
+  if(uploadBtn) uploadBtn.disabled=true;
+  run={info:null,liveText:'',qSeen:0,tab:'steps'}; liveAnswers=[];
+  document.getElementById('status').textContent='Starting...';
+  document.getElementById('status').style.color='#2AF598';
+  try{
+    const fd=new FormData(); fd.append('material_id',id); fd.append('tma_text',text); fd.append('stream','1');
+    const r=await fetch('/api/tma/solve',{method:'POST',body:fd});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error||('Server error '+r.status)); }
+    if(!r.body) throw new Error('The server returned an empty response. Please try again.');
+    const reader=r.body.getReader(), dec=new TextDecoder(); let buf='', data=null;
+    const consumeLine=line=>{
+      if(!line.trim()) return;
+      let ev;
+      try{ ev=JSON.parse(line); }catch{ throw new Error('The server returned an invalid answer stream. Please try again.'); }
+      if(ev.type==='error') throw new Error(ev.error||'The solver could not finish.');
+      if(ev.type==='done') data=ev.payload; else handleEvent(ev);
+    };
+    while(true){
+      const {value,done}=await reader.read(); if(done) break;
+      buf+=dec.decode(value,{stream:true});
+      let nl; while((nl=buf.indexOf('\n'))>=0){
+        const line=buf.slice(0,nl); buf=buf.slice(nl+1); consumeLine(line);
+      }
+    }
+    buf+=dec.decode();
+    if(buf.trim()) consumeLine(buf);
+    if(!data) throw new Error('Server stopped before finishing. Try again.');
+    allAccumulated = data.all_answers || data.answers;
+    currentAnswers = allAccumulated;
+    document.getElementById('status').textContent = `Done: ${data.new_count} checked | Total: ${data.total_accumulated}`;
+    document.getElementById('accBadge').textContent = `${data.total_accumulated} accumulated`;
+    document.getElementById('out').innerHTML = data.answers.map((a,i)=>answerCard(a,i)).join('');
+    document.getElementById('allAccCard').style.display='block';
+    document.getElementById('allAccList').innerHTML=allAccumulated.map((a,i)=>answerCard(a,i)).join('');
+    document.getElementById('exportBtn').style.display='inline-block';
+  }catch(e){
+    document.getElementById('status').textContent='Could not solve TMA: '+e.message;
+    document.getElementById('status').style.color='#ff6b6b';
+    document.getElementById('out').innerHTML='<div style="color:#ff6b6b;padding:20px">Error: '+esc(e.message)+'</div>';
+  }finally{
+    btn.textContent='Solve From Material';
+    btn.disabled=false;
+    sel.disabled=false;
+    document.getElementById('clearBtn').disabled=false;
+    document.getElementById('exportBtn').disabled=false;
+    if(uploadBtn) uploadBtn.disabled=false;
+  }
+};
+
+async function clearHistory(){
+  if(!currentId) return alert('Select material first');
+  if(!confirm('Clear ALL accumulated for this course?')) return;
+  try{
+    const r=await fetch('/api/tma/clear/'+encodeURIComponent(currentId),{method:'POST'});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(data.error||`Server error ${r.status}`);
+    historyRequest++;
+    allAccumulated=[];
+    currentAnswers=[];
+    document.getElementById('accBadge').textContent='0 accumulated';
+    document.getElementById('allAccCard').style.display='none';
+    document.getElementById('allAccList').innerHTML='';
+    document.getElementById('exportBtn').style.display='none';
+    document.getElementById('out').innerHTML='<div style="text-align:center;color:#7A9A85;padding:20px">Cleared. Paste again.</div>';
+    document.getElementById('status').textContent='Saved answers cleared for this course.';
+    document.getElementById('status').style.color='#2AF598';
+  }catch(e){
+    document.getElementById('status').textContent='Could not clear saved answers: '+e.message;
+    document.getElementById('status').style.color='#ff6b6b';
+  }
+}
+
+document.getElementById('exportBtn').onclick=async()=>{
+  if(!currentAnswers.length) return alert('No answers yet');
+  const b=document.getElementById('exportBtn'), t=b.textContent; b.disabled=true; b.textContent='Building PDF...';
+  try{ await CMPDF.tma({title:cleanTitle(),answers:currentAnswers}); }catch(e){ alert('PDF error: '+e.message); }
+  b.disabled=false; b.textContent=t;
+};
+
+initUser();
+</script>
+</body>
+</html>

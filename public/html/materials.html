@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Materials Safe Box | CourseMate</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<meta property="og:image" content="logo.png">
+<meta property="og:title" content="GradePadi - NOUN GPA Calculator">
+<script src="/js/auth-fetch.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#060D09;color:#E8F5EC;font-family:'Inter',sans-serif;min-height:100vh}
+.topbar{height:92px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:#080E0A;border-bottom:1px solid #1C3324;position:sticky;top:0;z-index:100;gap:12px}
+.brand{display:flex;align-items:center;gap:14px;text-decoration:none}
+.logo-img{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #2AF598;background:#0F2318;display:block}
+.logo-fallback{width:80px;height:80px;border-radius:50%;background:#0F2318;border:3px solid #2AF598;display:none;place-items:center;font-weight:900;color:#2AF598;font-size:32px}
+.brand-text h1{font-size:18px;color:white;line-height:1}
+.brand-text p{font-size:9px;color:#2AF598;letter-spacing:1px;font-weight:700;margin-top:4px}
+.profile{position:relative;display:flex;align-items:center;gap:10px;flex-shrink:0;cursor:pointer}
+.profile-text{text-align:right;line-height:1.1}
+.profile-text b{display:block;font-size:12px;color:white}
+.profile-text span{font-size:10px;color:#2AF598}
+.avatar{width:42px;height:42px;border-radius:50%;background:#1A2F1E;border:2px solid #2AF598;display:grid;place-items:center;color:#2AF598;font-weight:800;font-size:13px;overflow:hidden;position:relative}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.avatar .cam{position:absolute;inset:0;background:rgba(0,0,0,0.5);display:none;place-items:center;font-size:14px}
+.avatar:hover .cam{display:grid}
+.dropdown{position:absolute;top:56px;right:0;width:260px;background:#0F1E15;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:12px;box-shadow:0 20px 40px rgba(0,0,0,0.5);display:none;z-index:200;animation:pop 0.25s ease}
+.dropdown.show{display:block}
+@keyframes pop{from{opacity:0;transform:translateY(-10px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+.drop-header{display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:8px}
+.drop-avatar{width:48px;height:48px;border-radius:50%;background:#2AF598;color:#08130E;display:grid;place-items:center;font-weight:800;overflow:hidden}
+.drop-avatar img{width:100%;height:100%;object-fit:cover}
+.drop-item{padding:10px 12px;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:13px;color:#9AB0A2;cursor:pointer;transition:0.2s}
+.drop-item:hover{background:#13281D;color:#E8F5EC}
+.drop-item.danger{color:#ff6b6b}
+.drop-divider{height:1px;background:rgba(255,255,255,0.06);margin:6px 0}
+.nav-wrap{background:#080E0A;padding:10px 18px;border-bottom:1px solid #1C3324;overflow-x:auto;position:sticky;top:92px;z-index:90}
+.nav{display:flex;gap:8px;max-width:1100px;margin:0 auto}
+.nav a{padding:8px 14px;border-radius:20px;background:#111F18;border:1px solid #1C3324;color:#8BA89A;text-decoration:none;font-size:12px;white-space:nowrap;font-weight:600;transition:0.2s}
+.nav a:hover{background:#13281D;color:#fff}
+.nav a.active{background:#2AF598;color:#05210F;border-color:#2AF598;font-weight:800}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px}
+.safe-header{background:linear-gradient(135deg,#0E2A1C,#102A1D);border:1px solid #1C3324;border-radius:20px;padding:22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.safe-header h2{font-size:22px;line-height:1.2}
+.safe-header h2 span{color:#2AF598}
+.safe-header p{font-size:11px;color:#7A9A85;margin-top:6px}
+.safe-badge{background:#0F2318;border:1px solid #2AF598;color:#2AF598;padding:7px 14px;border-radius:20px;font-size:10px;font-weight:800}
+.upload-box{background:#101E14;border:2px dashed #1C3324;border-radius:18px;padding:28px 20px;margin-top:18px;text-align:center;transition:0.2s;cursor:pointer}
+.upload-box.drag{border-color:#2AF598;background:#0F2318;transform:scale(1.01)}
+.upload-box input{display:none}
+.upload-btn{background:#2AF598;color:#05210F;border:none;padding:11px 20px;border-radius:24px;font-weight:800;font-size:12px;cursor:pointer;margin-top:14px}
+#upStatus{font-size:11px;color:#2AF598;margin-top:10px;min-height:14px;font-weight:600}
+.toolbar{margin-top:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.search-box{flex:1;min-width:200px;position:relative}
+.search-box input{width:100%;padding:12px 14px 12px 36px;border-radius:12px;background:#08130D;border:1px solid #1C3324;color:white;outline:none}
+.search-box span{position:absolute;left:12px;top:50%;transform:translateY(-50%)}
+.count{font-size:11px;color:#7A9A85;padding:10px 14px;background:#101E14;border:1px solid #1C3324;border-radius:12px}
+.list{margin-top:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.mat-card{background:#101E14;border:1px solid #1C3324;border-radius:16px;padding:16px;transition:0.2s}
+.mat-card:hover{border-color:#2AF59855;transform:translateY(-2px)}
+.mat-top{display:flex;justify-content:space-between;align-items:center}
+.mat-icon{width:44px;height:44px;border-radius:10px;background:#1A2F1E;color:#2AF598;display:grid;place-items:center;font-size:20px}
+.mat-safe{font-size:9px;background:#0F2318;border:1px solid #2AF598;color:#2AF598;padding:4px 9px;border-radius:20px;font-weight:800}
+.mat-title{font-size:13px;font-weight:700;margin-top:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mat-meta{font-size:10px;color:#7A9A85;margin-top:6px;line-height:1.6}
+.mat-meta b{color:#2AF598}
+.mat-actions{display:flex;gap:7px;margin-top:12px}
+.mat-actions button{flex:1;padding:8px;border-radius:9px;border:1px solid #1C3324;background:#08130D;color:#8BA89A;font-size:10px;font-weight:700;cursor:pointer}
+.mat-actions button.use{background:#2AF598;color:#05210F;border-color:#2AF598;font-weight:800}
+.mat-actions button.del{color:#FF6B6B}
+.empty{text-align:center;padding:50px 20px;color:#7A9A85;border:1px dashed #1C3324;border-radius:16px;margin-top:18px;background:#0A1410}
+.empty.big{font-size:42px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/dashboard.html" class="brand">
+    <img src="/logo.png?v=2" alt="CourseMate" class="logo-img" id="logoImg" onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='grid'">
+    <div id="logoFallback" class="logo-fallback">C</div>
+    <div class="brand-text"><h1>CourseMate</h1><p>NOUN - NATIONAL OPEN UNIVERSITY</p></div>
+  </a>
+  <div class="profile" id="avatarWrap">
+    <div class="profile-text"><b id="profName">Oliver</b><span id="profPlan">Student</span></div>
+    <div class="avatar" id="profAvatar"><span id="avatarLetter">O</span></div>
+    <div class="dropdown" id="avatarDropdown">
+      <div class="drop-header"><div class="drop-avatar" id="dropAvatar"><span id="dropAvatarLetter">O</span></div><div><div style="font-weight:700;font-size:13px" id="dropName">Oliver John</div><div style="font-size:11px;color:#8BA89A" id="dropEmail">oliver@email.com</div><div style="font-size:10px;color:#2AF598;margin-top:2px" id="dropPlanBadge">Free • 0/3 PDFs</div></div></div>
+      <div class="drop-item" onclick="location.href='settings.html'"><span>👤</span> My Profile</div>
+      <div class="drop-item" onclick="location.href='settings.html'"><span>⚙</span> Settings</div>
+      <div class="drop-item" onclick="location.href='../../index.html#pricing'"><span>💳</span> Billing - Starter 7 PDFs ₦4,500</div>
+      <div class="drop-item" onclick="location.href='dashboard.html'"><span>📊</span> Dashboard</div>
+      <div class="drop-divider"></div>
+      <div class="drop-item danger" onclick="handleLogout()"><span>🚪</span> Logout</div>
+    </div>
+  </div>
+</div>
+
+<div class="nav-wrap">
+  <div class="nav">
+    <a href="/dashboard.html">📊 Dashboard</a>
+    <a href="./materials.html" class="active">📚 Materials (Safe)</a>
+    <a href="./summary.html">📄 Summary</a>
+    <a href="./tma.html">✅ TMA Solver</a>
+    <a href="./quiz.html">🎯 Quiz</a>
+    <a href="./chat.html">💬 AI Tutor</a>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="safe-header">
+    <div><h2>Your Materials are <span>Safe Forever</span></h2><p>Upload once → Use for Summary, TMA, Quiz, AI Tutor anytime. Never disappears.</p></div>
+    <div class="safe-badge">🔒 SAFE STORAGE ACTIVE</div>
+  </div>
+
+  <div class="upload-box" id="dropZone">
+    <div style="font-size:36px">📤</div>
+    <h3 style="font-size:14px;margin-top:8px">Drag & Drop your NOUN PDF here</h3>
+    <p style="font-size:11px;color:#7A9A85;margin-top:4px">PDF only • Saved permanently • Free: 3 PDFs max, Starter: 7 PDFs</p>
+    <p style="font-size:11px;color:#ffb347;margin-top:6px">Study tools require searchable PDF text; scanned/image-only PDFs are not OCR-processed.</p>
+    <input type="file" id="fileInput" accept=".pdf">
+    <button class="upload-btn" id="chooseBtn">+ Choose PDF</button>
+    <div id="upStatus"></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-box"><span>🔍</span><input id="searchInput" placeholder="Search your safe materials... e.g GST102, CIT211"></div>
+    <div class="count" id="countBadge">0 saved</div>
+  </div>
+
+  <div class="list" id="list"></div>
+  <div id="emptyBox" class="empty" style="display:none"><div class="big">📚</div><div style="margin-top:10px;font-weight:800;color:white">Safe Box is Empty</div><div style="font-size:11px;margin-top:6px;max-width:380px;margin-left:auto;margin-right:auto;line-height:1.5">Upload your first NOUN course material PDF above. Once uploaded, it will stay here forever.</div></div>
+</div>
+
+<script>
+const supabaseClient = window.supabase.createClient('https://lohjifbvrbnqxamroxtp.supabase.co','sb_publishable_-3UptBHer0fKyelp_a3z-g_jfflZF0l');
+const API_BASE = '';
+let allMaterials = [];
+let currentUser = null;
+const fileInput = document.getElementById('fileInput');
+const chooseBtn = document.getElementById('chooseBtn');
+const dropZone = document.getElementById('dropZone');
+const upStatus = document.getElementById('upStatus');
+const listEl = document.getElementById('list');
+const emptyBox = document.getElementById('emptyBox');
+const countBadge = document.getElementById('countBadge');
+const searchInput = document.getElementById('searchInput');
+const escapeHTML = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+async function init(){
+  // Load user + avatar (same as dashboard)
+  try{
+    const {data:{user}} = await supabaseClient.auth.getUser();
+    if(user){
+      currentUser=user;
+      const {data:profile} = await supabaseClient.from('profiles').select('*').eq('id',user.id).single();
+      let fullName = profile?.full_name || profile?.email || user?.user_metadata?.full_name || user?.email || "Student";
+fullName = fullName.split('@')[0]; // if email, remove @ part
+const firstName = fullName.split(' ')[0];
+document.getElementById('profName').textContent = firstName;
+document.getElementById('dropName').textContent = profile?.full_name || fullName;
+document.getElementById('dropEmail').textContent = profile?.email || user?.email || "";
+const letter = firstName[0]?.toUpperCase() || "S";
+document.getElementById('avatarLetter').textContent = letter;
+document.getElementById('dropAvatarLetter').textContent = letter;
+      document.getElementById('avatarLetter').textContent=firstName[0].toUpperCase();
+      document.getElementById('dropName').textContent=fullName;
+      document.getElementById('dropEmail').textContent=profile?.email||user.email;
+      document.getElementById('dropAvatarLetter').textContent=firstName[0].toUpperCase();
+      document.getElementById('profPlan').textContent=`${profile?.plan||'Free'} Plan • Student`;
+    }
+  }catch(e){console.log(e)}
+
+  setupAvatar();
+  await loadMaterials();
+}
+
+function setupAvatar(){
+  const wrap=document.getElementById('avatarWrap');
+  const dd=document.getElementById('avatarDropdown');
+  if(!wrap || !dd) return;
+  wrap.addEventListener('click',(e)=>{
+    e.stopPropagation();
+    dd.classList.toggle('show');
+  });
+  document.addEventListener('click',(e)=>{
+    if(!wrap.contains(e.target)) dd.classList.remove('show');
+  });
+}
+
+
+async function handleLogout(){
+  if(!confirm('Logout?')) return;
+  await supabaseClient.auth.signOut();
+  localStorage.clear();
+  location.href='../../index.html';
+}
+window.handleLogout=handleLogout;
+
+chooseBtn.addEventListener('click', (e)=>{
+  e.preventDefault();
+  e.stopPropagation();
+  console.log('Choose clicked');
+  fileInput.click();
+});
+
+fileInput.addEventListener('change', (e)=>{
+  console.log('File picked', e.target.files[0]);
+  if(e.target.files[0]) uploadFile(e.target.files[0]);
+});
+
+dropZone.addEventListener('click', (e)=>{
+  if(e.target.closest('#chooseBtn')) return; // don't double fire
+  fileInput.click();
+});
+dropZone.ondragover = e=>{ e.preventDefault(); dropZone.classList.add('drag'); };
+dropZone.ondragleave = ()=>dropZone.classList.remove('drag');
+dropZone.ondrop = e=>{ e.preventDefault(); dropZone.classList.remove('drag'); if(e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]); };
+searchInput.oninput = e=>{
+  const q=e.target.value.toLowerCase().trim();
+  if(!q) render(allMaterials);
+  else render(allMaterials.filter(m=> (m.title||'').toLowerCase().includes(q) ));
+};
+
+async function loadMaterials(){
+  try{
+    const res=await fetch(`${API_BASE}/api/materials`);
+    const data=await res.json();
+    allMaterials=data.materials||[];
+    render(allMaterials);
+    document.getElementById('dropPlanBadge').textContent=`Free • ${allMaterials.length}/3 PDFs`;
+    document.getElementById('countBadge').textContent=`${allMaterials.length} saved`;
+  }catch(err){ listEl.innerHTML=`<div style="color:#ff6b6b;padding:20px">Failed: ${err.message}</div>`; }
+}
+
+function render(materials){
+  countBadge.textContent=`${materials.length} saved`;
+  if(!materials.length){ listEl.innerHTML=''; emptyBox.style.display='block'; return; }
+  emptyBox.style.display='none';
+  listEl.innerHTML=materials.map(m=>{
+    const title=m.title||m.file_name||'Untitled';
+    const pages=m.page_count||0;
+    const chars=m.char_count||m.text_content?.length||0;
+    const date=m.created_at? new Date(m.created_at).toLocaleDateString():'Now';
+    const idShort=(m.id||'').slice(-6).toUpperCase()||'ID';
+    return `<div class="mat-card">
+      <div class="mat-top"><div class="mat-icon">📄</div><div class="mat-safe">🔒 SAFE</div></div>
+      <div class="mat-title" title="${escapeHTML(title)}">${escapeHTML(title)}</div>
+      <div class="mat-meta">📑 ${pages} pages • 🔤 ${Number(chars).toLocaleString()} chars<br>🕒 ${date} • <b>✓ Saved for future use</b><br>🆔 ${idShort}</div>
+      <div class="mat-actions">
+        <button class="use" onclick="useForTMA('${m.id}')">Use for TMA</button>
+        <button onclick="useForSummary('${m.id}')">Summary</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function uploadFile(file){
+  if(!file.name.toLowerCase().endsWith('.pdf')){ upStatus.textContent='❌ PDF only'; return; }
+  if(file.size>100*1024*1024){ upStatus.textContent='❌ Too large (max 100MB)'; return; }
+  // plan limits are enforced by the server (it shows the upgrade popup), so owner accounts are never blocked here
+  upStatus.textContent=`⏳ Uploading ${file.name}... Saving...`; chooseBtn.disabled=true;
+  try{
+    const res=await window.cmUploadPdf(file);
+    const data=await res.json(); if(!res.ok) throw new Error(data.error||'Upload failed');
+    upStatus.textContent=data.material?.scanned
+      ? `⚠ ${data.title||file.name} saved, but appears scanned/image-only. OCR is not available; searchable text is needed.`
+      : `✅ ${data.title||file.name} saved safely forever!`; fileInput.value=''; await loadMaterials();
+    setTimeout(()=>upStatus.textContent='',4000);
+  }catch(err){ upStatus.textContent=`❌ ${err.message}`; }finally{ chooseBtn.disabled=false; }
+}
+
+// FIXED: Now uses ?mat=id so TMA Solver auto-selects course (fixes TMA button not working)
+function useForTMA(id){ localStorage.setItem('selected_material',id); location.href=`./tma.html?mat=${id}`; }
+function useForSummary(id){ localStorage.setItem('selected_material',id); location.href=`./summary.html?mat=${id}`; }
+// Materials are permanent once uploaded - there is no delete.
+console.log('UPLOAD FIX APPLIED');
+init();
+</script>
+</body>
+</html>

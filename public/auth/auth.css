@@ -1,0 +1,7 @@
+.auth-body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}
+.auth-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;width:100%;max-width:400px}
+.auth-card.wide{max-width:500px}
+.auth-logo{width:48px;height:48px;background:white;padding:6px;border-radius:12px;margin-bottom:12px}
+.auth-card h2{font-family:'Space Grotesk';font-size:20px}
+.auth-card p{font-size:12px;color:var(--muted);margin:4px 0 16px 0}
+.remember{font-size:11px;display:flex;gap:6px;align-items:center;margin:10px 0;color:var(--muted)}

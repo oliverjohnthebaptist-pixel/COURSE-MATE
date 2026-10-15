@@ -1,0 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#060D09;--card:#101E14;--border:#1C3324;--muted:#7A9A85;--text:#E8F5EC;--green:#2AF598}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif}
+.topbar{height:68px;display:flex;justify-content:space-between;align-items:center;padding:0 20px;background:#080E0A;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.brand{display:flex;align-items:center;gap:12px}
+.logo-img{width:42px;height:42px;border-radius:50%;background:#0F2318;border:1px solid #1E3A2A;object-fit:contain;padding:4px;display:block}
+.brand-text h1{font-size:15px;font-weight:800}.brand-text p{font-size:8px;font-weight:700;color:var(--green);margin-top:3px;letter-spacing:1px}
+.user{display:flex;align-items:center;gap:10px}.user-meta{text-align:right}.user-meta b{font-size:13px;display:block}.user-meta span{font-size:10px;color:var(--muted)}
+.avatar{width:34px;height:34px;background:var(--green);color:#05210F;border-radius:50%;display:grid;place-items:center;font-weight:800}
+.nav-wrap{background:#080E0A;padding:10px 16px;border-bottom:1px solid rgba(28,51,36,.5);position:sticky;top:68px;z-index:90}
+.nav{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;white-space:nowrap}.nav::-webkit-scrollbar{display:none}
+.nav a{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;padding:8px 13px;border-radius:999px;font-size:12px;font-weight:600;text-decoration:none;color:#8BA89A;background:#111F18;border:1px solid #1C3324}
+.nav a.active{background:var(--green);color:#05210F;border-color:var(--green);box-shadow:0 0 18px rgba(42,245,152,.35);font-weight:700}
+.wrap{max-width:980px;margin:0 auto;padding:22px 16px 80px}
+.hero{background:linear-gradient(180deg,#132A1E 0%,#0D1F14 100%);border:1px solid #1F3D29;border-radius:20px;padding:24px}
+.hero h1{font-size:22px;font-weight:800}.hero h1 span{color:var(--green)}.hero p{margin-top:8px;font-size:13px;color:#A9C5B3;line-height:1.6}
+.grid{margin-top:18px;display:grid;grid-template-columns:1.15fr.85fr;gap:16px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:linear-gradient(180deg,#101E14 0%,#0D1A12 100%);border:1px solid var(--border);border-radius:18px;padding:18px}
+.card-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.card-h h2{font-size:13px;font-weight:700}
+.card-h small{font-size:10px;color:var(--green);background:rgba(42,245,152,.1);border:1px solid rgba(42,245,152,.2);padding:4px 9px;border-radius:999px}
+.label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:14px 0 7px;display:block}
+.select-wrap{position:relative}.select-wrap::after{content:'⌄';position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+select,textarea{width:100%;background:#08130D;border:1px solid var(--border);border-radius:12px;padding:12px;color:white;font-size:13px;outline:none}
+select{appearance:none;padding-right:32px}textarea{min-height:120px;resize:vertical}
+.btn{margin-top:14px;width:100%;height:44px;border:none;border-radius:12px;background:var(--green);color:#05210F;font-weight:800;cursor:pointer}
+.export-btn{background:#111F18;border:1px solid #1E3A2A;color:var(--green);padding:6px 12px;border-radius:999px;font-size:11px;font-weight:700;cursor:pointer}
+.empty{border:1px dashed var(--border);border-radius:12px;padding:28px 14px;text-align:center;color:var(--muted);font-size:12px}
+
+/* EXACT DISPLAY LIKE YOUR SCREENSHOT */
+.answer-row{background:#0E2016;border:1px solid #1C3324;border-radius:12px;padding:14px 14px 10px;margin-bottom:12px}
+.q-title{font-size:13px;font-weight:700;color:#E8F5EC;line-height:1.4;margin-bottom:6px}
+.a-green{font-size:12px;font-weight:700;color:#2AF598;margin-bottom:6px}
+.why{font-size:11px;color:#C5D9CC;line-height:1.5;margin-bottom:4px}
+.evidence{font-size:10px;color:#8BA89A;font-style:italic;line-height:1.4;margin-bottom:2px}
+.ref{font-size:10px;color:#7A9A85;font-weight:700;margin-top:4px}

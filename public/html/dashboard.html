@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - CourseMate</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<meta property="og:image" content="logo.png">
+<meta property="og:title" content="GradePadi - NOUN GPA Calculator">
+<script src="/js/auth-fetch.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#060D09;color:#E8F5EC;overflow-x:hidden}
+.topbar{height:92px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:#080E0A;border-bottom:1px solid #1C3324;position:sticky;top:0;z-index:100;gap:12px}
+.brand{display:flex;align-items:center;gap:14px;text-decoration:none}
+.logo-img{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #2AF598;background:#0F2318;display:block}
+.logo-fallback{width:80px;height:80px;border-radius:50%;background:#0F2318;border:3px solid #2AF598;display:none;place-items:center;font-weight:900;color:#2AF598;font-size:32px}
+.brand-text h1{font-size:18px;color:white;line-height:1}
+.brand-text p{font-size:9px;color:#2AF598;letter-spacing:1px;font-weight:700;margin-top:4px}
+.profile{position:relative;display:flex;align-items:center;gap:10px;flex-shrink:0;cursor:pointer}
+.profile-text{text-align:right;line-height:1.1}
+.profile-text b{display:block;font-size:12px;color:white}
+.profile-text span{font-size:10px;color:#2AF598}
+.avatar{width:42px;height:42px;border-radius:50%;background:#1A2F1E;border:2px solid #2AF598;display:grid;place-items:center;color:#2AF598;font-weight:800;font-size:13px;overflow:hidden;position:relative}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.avatar .cam{position:absolute;inset:0;background:rgba(0,0,0,0.5);display:none;place-items:center;font-size:14px}
+.avatar:hover .cam{display:grid}
+.dropdown{position:absolute;top:56px;right:0;width:260px;background:#0F1E15;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:12px;box-shadow:0 20px 40px rgba(0,0,0,0.5);display:none;z-index:200;animation:pop 0.25s ease}
+.dropdown.show{display:block}
+@keyframes pop{from{opacity:0;transform:translateY(-10px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+.drop-header{display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:8px}
+.drop-avatar{width:48px;height:48px;border-radius:50%;background:#2AF598;color:#08130E;display:grid;place-items:center;font-weight:800;overflow:hidden}
+.drop-avatar img{width:100%;height:100%;object-fit:cover}
+.drop-item{padding:10px 12px;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:13px;color:#9AB0A2;cursor:pointer;transition:0.2s}
+.drop-item:hover{background:#13281D;color:#E8F5EC}
+.drop-item.danger{color:#ff6b6b}
+.drop-divider{height:1px;background:rgba(255,255,255,0.06);margin:6px 0}
+.nav-wrap{background:#080E0A;padding:10px 18px;border-bottom:1px solid #1C3324;overflow-x:auto;position:sticky;top:92px;z-index:90}
+.nav{display:flex;gap:8px;max-width:1100px;margin:0 auto}
+.nav a{padding:8px 14px;border-radius:20px;background:#111F18;border:1px solid #1C3324;color:#8BA89A;text-decoration:none;font-size:12px;white-space:nowrap;font-weight:600;transition:0.2s;cursor:pointer;pointer-events:auto}
+.nav a:hover{background:#13281D;color:#fff}
+.nav a.active{background:#2AF598;color:#05210F;border-color:#2AF598;font-weight:800}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px}
+.hero{margin-top:10px;background:linear-gradient(135deg,#0E2A1C,#102A1D);border:1px solid #1C3324;border-radius:20px;padding:28px;position:relative;overflow:hidden}
+.hero h1{font-family:'Plus Jakarta Sans';font-size:26px;line-height:1.1}
+.hero h1 span{color:#2AF598}
+.hero p{font-size:12px;color:#7A9A85;margin-top:8px;max-width:520px;line-height:1.6}
+.btns{display:flex;gap:10px;margin-top:16px}
+.b1{background:#E8F5EC;color:#05210F;padding:10px 18px;border-radius:999px;font-weight:700;border:none;cursor:pointer;font-size:12px}
+.b2{background:#2AF598;color:#05210F;padding:10px 18px;border-radius:999px;font-weight:800;border:none;cursor:pointer;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+.card{background:#101E14;border:1px solid #1C3324;border-radius:16px;padding:16px;transition:0.2s}
+.card:hover{border-color:#2AF59855;transform:translateY(-2px)}
+.plan-bar{height:6px;background:#08130D;border-radius:10px;overflow:hidden;margin-top:8px;border:1px solid #1C3324}
+.plan-fill{height:100%;background:#2AF598;transition:0.6s}
+.tag{display:inline-block;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700}
+.upload{background:#101E14;border:2px dashed #1C3324;border-radius:18px;padding:24px;margin-top:18px;text-align:center;cursor:pointer;transition:0.2s}
+.upload:hover{background:#0F2318;border-color:#2AF598}
+.upload.drag{border-color:#2AF598;background:#0F2318;transform:scale(1.01)}
+@media(max-width:900px){.grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/dashboard.html" class="brand">
+    <img class="logo-img" id="logoImg" src="/logo.png?v=2" alt="CourseMate" onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='grid'">
+    <div id="logoFallback" class="logo-fallback">C</div>
+    <div class="brand-text"><h1 style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;">COURSEMATE</h1><p>NOUN - NATIONAL OPEN UNIVERSITY</p></div>
+  </a>
+  <div class="profile" id="avatarWrap">
+    <div class="profile-text"><b id="profName"></b><span id="profPlan">Free Plan - 3 PDFs max</span></div>
+    <div class="avatar" id="profAvatar"><span id="avatarLetter">O</span></div>
+    <div class="dropdown" id="avatarDropdown">
+      <div class="drop-header">
+        <div class="drop-avatar" id="dropAvatar"><span id="dropAvatarLetter">O</span></div>
+        <div><div style="font-weight:700;font-size:13px" id="dropName">Oliver John</div><div style="font-size:11px;color:#8BA89A" id="dropEmail">oliver@email.com</div><div style="font-size:10px;color:#2AF598;margin-top:2px" id="dropPlanBadge">Free • 0/3 PDFs</div></div>
+      </div>
+      <div class="drop-item" onclick="location.href='/settings.html'"><span>👤</span> My Profile</div>
+      <div class="drop-item" onclick="location.href='/settings.html'"><span>⚙</span> Settings</div>
+      <div class="drop-item" onclick="location.href='../../index.html#pricing'"><span>💳</span> Billing - Starter 7 PDFs ₦4,500</div>
+      <div class="drop-item" onclick="location.href='/materials.html'"><span>📚</span> My Materials <span id="dropMatCount" style="margin-left:auto;background:#111F18;padding:2px 8px;border-radius:999px;font-size:10px">0</span></div>
+      <div class="drop-divider"></div>
+      <div class="drop-item danger" onclick="handleLogout()"><span>🚪</span> Logout</div>
+    </div>
+  </div>
+</div>
+
+<!-- FIXED NAV BAR - ABSOLUTE PATHS + ONCLICK FORCE NAVIGATE - NO BASE64 -->
+<div class="nav-wrap">
+  <div class="nav">
+    <a href="/dashboard.html" class="active" onclick="location.href='/dashboard.html'; return false;">📊 Dashboard</a>
+    <a href="/materials.html" onclick="location.href='/materials.html'; return false;">📚 Materials (Safe)</a>
+    <a href="/summary.html" onclick="location.href='/summary.html'; return false;">📄 Summary</a>
+    <a href="/tma.html" onclick="location.href='/tma.html'; return false;">✅ TMA Solver</a>
+    <a href="/quiz.html" onclick="location.href='/quiz.html'; return false;">🎯 Quiz</a>
+    <a href="/chat.html" onclick="location.href='/chat.html'; return false;">💬 AI Tutor</a>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>Your NOUN success system is <span id="heroStatus">ready</span></h1>
+    <p id="heroText">Stop reading 300-page PDFs. Upload once and get exam-ready summary, TMA answers with page proof, and predicted questions.</p>
+    <div class="btns"><button class="b1" onclick="location.href='/materials.html'">Go to Library →</button><button class="b2" id="uploadBtn">+ Upload Material</button></div>
+  </div>
+
+  <div class="grid">
+    <div class="card"><div style="display:flex;justify-content:space-between"><div style="font-size:22px;font-weight:800" id="matCount">0</div><span class="tag" style="background:#111F18;color:#2AF598;border:1px solid #1C3324" id="pdfTag">0/3 Free</span></div><div style="font-size:11px;color:#8BA89A;margin-top:4px">Materials Uploaded</div><div class="plan-bar"><div class="plan-fill" id="pdfBar" style="width:0%"></div></div><div style="font-size:10px;color:#5a7a66;margin-top:4px" id="pdfText">Free = 3 PDFs max</div></div>
+    <div class="card"><div style="display:flex;justify-content:space-between"><div style="font-size:22px;font-weight:800" id="tmaCount">0</div><span class="tag" style="background:#111F18;color:#2AF598;border:1px solid #1C3324" id="tmaTag">0/15 Free</span></div><div style="font-size:11px;color:#8BA89A;margin-top:4px">TMA Solved</div><div class="plan-bar"><div class="plan-fill" id="tmaBar" style="width:0%"></div></div><div style="font-size:10px;color:#5a7a66;margin-top:4px" id="tmaText">Free = 15 TMA max</div></div>
+    <div class="card"><div style="display:flex;justify-content:space-between"><div style="font-size:22px;font-weight:800" id="quizCount">0</div><span class="tag" style="background:#111F18;color:#8BA89A;border:1px solid #1C3324" id="quizTag">0/20 Free</span></div><div style="font-size:11px;color:#8BA89A;margin-top:4px">Quiz Generated</div><div class="plan-bar"><div class="plan-fill" id="quizBar" style="width:0%;background:#8BA89A"></div></div><div id="quizText" style="font-size:10px;color:#5a7a66;margin-top:4px">Free = 20 quiz</div></div>
+    <div class="card"><div style="font-size:12px;font-weight:700;color:#2AF598" id="aiStatus">● AI Active • Ready</div><div style="font-size:11px;color:#8BA89A;margin-top:6px" id="aiText">Free: 20 AI Tutor chats<br><span style="color:#2AF598">Starter = unlimited chats</span></div><button id="upgradeBtn" onclick="location.href='../../index.html#pricing'" style="margin-top:10px;width:100%;background:transparent;border:1px solid #2AF598;color:#2AF598;padding:6px;border-radius:999px;font-size:11px;font-weight:700;cursor:pointer">Upgrade by bank transfer · ₦4,500</button></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </div>
+
+  <section class="card" id="manual-payment" style="margin-top:18px">
+    <h2 style="font-size:18px;margin-bottom:8px">Starter payment & activation</h2>
+    <p style="font-size:12px;color:#9AB0A2;line-height:1.7;margin-top:8px">View Starter bank transfer details and submit your payment proof on the payment page. Once approved, enter your activation code on the payments page.</p>
+    <a href="/payment.html" class="b2" style="display:inline-block;text-decoration:none;margin-top:12px">Go to payment page</a>
+    <a href="/payment.html" style="display:inline-block;color:#2AF598;margin:12px">Enter activation code</a>
+  </section>
+
+  <section class="card" id="adminPaymentsLink" style="display:none;margin-top:18px">
+    <h2 style="font-size:18px;margin-bottom:8px">Administrator</h2>
+    <p style="font-size:12px;color:#9AB0A2;margin-bottom:12px">Review transfer receipts, approve payments, and issue activation codes.</p>
+    <a href="/payments.html" class="b2" style="display:inline-block;text-decoration:none">Open payment review</a>
+  </section>
+
+  <div class="upload" id="dropZone">
+    <div style="font-weight:700;font-size:14px">📁 Upload Course Material</div>
+    <div style="font-size:11px;color:#7A9A85;margin-top:4px">Drag & drop PDF or click to browse • Free: 3 PDFs max, Starter: 7 PDFs (70 TMA)</div>
+    <input type="file" id="fileInput" accept=".pdf" hidden>
+    <div id="fileName" style="margin-top:8px;color:#2AF598;font-size:12px;font-weight:600"></div>
+    <div id="uploadStatus" style="margin-top:6px;font-size:11px;color:#7A9A85"></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px;margin-bottom:30px">
+    <div class="card"><div style="font-weight:700;margin-bottom:12px;display:flex;justify-content:space-between"><span>Current Materials</span><span style="font-size:11px;color:#2AF598;cursor:pointer" onclick="location.href='/materials.html'">View all →</span></div><div id="materialList" style="font-size:13px;color:#8BA89A">Loading...</div></div>
+    <div class="card"><div style="font-weight:700;margin-bottom:12px">Recent Activity</div><div id="activityList" style="font-size:12px;color:#8BA89A">Loading...</div></div>
+  </div>
+</div>
+
+<script src="/js/dashboard.js?v=8"></script>
+<script>
+// FORCE NAV CLICK WORKS - DEBUG
+document.querySelectorAll('.nav a').forEach(a=>{
+  a.addEventListener('click', (e)=>{
+    e.preventDefault();
+    const href = a.getAttribute('href');
+    console.log('NAV CLICK ->', href);
+    location.href = href;
+  });
+});
+</script>
+</body>
+</html>

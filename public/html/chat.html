@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Tutor</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<meta property="og:image" content="logo.png">
+<meta property="og:title" content="GradePadi - NOUN GPA Calculator">
+<link rel="stylesheet" href="../css/tma.css">
+<style>
+.topbar{
+  height:92px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  padding:0 18px!important;
+  background:#080E0A!important;
+  border-bottom:1px solid #1C3324!important;
+}
+.brand{display:flex!important;align-items:center!important;gap:14px!important}
+.logo-img{
+  width:80px!important;
+  height:80px!important;
+  border-radius:50%!important;
+  object-fit:cover!important;
+  border:3px solid #2AF598!important;
+  background:#0F2318!important;
+  display:block!important;
+}
+.brand-text h1{font-size:18px!important;color:white!important;margin:0!important;line-height:1!important}
+.brand-text p{font-size:9px!important;color:#2AF598!important;letter-spacing:1px!important;font-weight:700!important;margin-top:4px!important}
+.nav-wrap{background:#080E0A!important;padding:10px 18px!important;border-bottom:1px solid #1C3324!important}
+.nav{display:flex!important;gap:8px!important}
+.nav a{padding:8px 14px!important;border-radius:20px!important;background:#111F18!important;border:1px solid #1C3324!important;color:#8BA89A!important;text-decoration:none!important;font-size:12px!important}
+.nav a.active{background:#2AF598!important;color:#05210F!important;font-weight:800!important}
+.badge-acc{background:#2AF598;color:#05210F;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;display:inline-block;margin-left:8px}
+#status{color:#2AF598;font-size:11px;margin-top:8px;font-weight:700}
+.wrap{padding:18px; max-width:900px; margin:0 auto;}
+.card{background:#0F2318;border:1px solid #1C3324;border-radius:16px;padding:18px;margin-bottom:16px}
+.label{font-size:10px;color:#7A9A85;font-weight:700;letter-spacing:0.5px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">
+    <img class="logo-img" src="/logo.png?v=2" alt="C" onerror="this.src='../../logo.png'; this.onerror=null; this.src='/public/logo.png'">
+    <div class="brand-text"><h1>CourseMate</h1><p>NOUN • NATIONAL OPEN UNIVERSITY</p></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div style="text-align:right;line-height:1"><b style="font-size:12px;color:white;display:block">Oliver</b><span style="font-size:10px;color:#2AF598">Student</span></div>
+    <div style="width:38px;height:38px;border-radius:50%;background:#1A2F1E;border:1px solid #2AF598;display:grid;place-items:center;color:#2AF598;font-weight:800">O</div>
+  </div>
+</div>
+<div class="nav-wrap">
+  <div class="nav">
+    <a href="./dashboard.html">📊 Dashboard</a>
+    <a href="./materials.html">📚 Materials</a>
+    <a href="./tma.html">✅ TMA Solver</a>
+    <a href="./summary.html">📄 Summary</a>
+    <a href="./quiz.html">🎯 Quiz</a>
+    <a href="./chat.html" class="active">💬 AI Tutor</a>
+  </div>
+</div>
+<div class="wrap">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+      <h2 style="font-size:14px">AI Tutor <span class="badge-acc">Teaches from your PDF</span></h2>
+      <button id="clearBtn" style="background:transparent;border:1px solid #ff4d4d;color:#ff4d4d;padding:6px 12px;border-radius:20px;font-size:11px;cursor:pointer">Clear chat</button>
+    </div>
+    <label class="label">SELECT COURSE MATERIAL (FROM YOUR UPLOADS)</label>
+    <select id="matSelect" style="width:100%;padding:12px;border-radius:10px;background:#08130D;color:white;border:1px solid #1C3324;margin-top:6px"></select>
+    <div id="uploadSlot"></div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:#8BA89A;cursor:pointer"><input type="checkbox" id="general" style="accent-color:#2AF598"> Allow general knowledge when my PDF doesn't cover a question (labelled "not from your material")</label>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div id="msgs" style="height:58vh;min-height:360px;overflow-y:auto;padding:16px"></div>
+    <div id="challenge" style="display:none;border-top:1px solid #1C3324;background:#0E2016;padding:10px 14px;font-size:12px;color:#C5D9CC"></div>
+    <div id="quick" style="border-top:1px solid #1C3324;padding:10px 12px 0;display:flex;gap:8px;flex-wrap:wrap;background:#0B1A12"></div>
+    <div style="padding:12px;display:flex;gap:8px;align-items:flex-end;background:#0B1A12">
+      <textarea id="inp" rows="1" placeholder="Ask me anything - your PDF, any course topic, or general questions... (Enter to send)" style="min-height:44px;max-height:140px;resize:none;background:#08130D;color:white;border:1px solid #1C3324;border-radius:12px;padding:12px;font-size:13px;flex:1;outline:none"></textarea>
+      <button id="sendBtn" style="height:44px;padding:0 18px;background:#2AF598;border:none;border-radius:12px;font-weight:800;cursor:pointer;color:#05210F">Send</button>
+    </div>
+  </div>
+</div>
+<script src="/js/auth-fetch.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="/js/letterhead.js"></script>
+<script src="../js/cm.js"></script>
+<script>
+const sel=document.getElementById('matSelect'), E=CM.esc, msgs=document.getElementById('msgs'), inp=document.getElementById('inp');
+let chat=[], busy=false, intro=null, pending=null, lastTopic='';
+document.getElementById('general').checked=true; // tutor always answers: PDF first, general knowledge when the PDF does not cover it
+const key=()=>'cm_tutor_'+sel.value;
+const cb=(label,click)=>`<button onclick="${click}" ${busy?'disabled':''} style="cursor:pointer;background:#111F18;border:1px solid #1C3324;color:#8BA89A;padding:7px 12px;border-radius:20px;font-size:12px;white-space:nowrap">${label}</button>`;
+const hi=(label,click)=>`<button onclick="${click}" ${busy?'disabled':''} style="cursor:pointer;background:transparent;border:1px solid #2AF598;color:#2AF598;padding:7px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap">${label}</button>`;
+const card=inner=>`<div style="display:flex;margin-bottom:14px"><div style="max-width:94%;background:#0E2016;border:1px solid #1C3324;border-radius:16px 16px 16px 4px;padding:12px 14px;font-size:13px;line-height:1.65;color:#C5D9CC">${inner}</div></div>`;
+
+function topicsHtml(){
+  if(!intro) return '';
+  return intro.modules.map(m=>`<div style="margin-top:10px"><div style="font-size:11px;font-weight:800;color:#7A9A85;margin-bottom:5px">${intro.structured?`MODULE ${m.n}${m.title?' - '+E(m.title.toUpperCase()):''}`:'PARTS OF YOUR PDF'}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">${m.units.map(u=>`<button onclick="teach(${m.n},${u.n})" ${busy?'disabled':''} title="${E(u.title)}" style="cursor:pointer;background:#111F18;border:1px solid #1C3324;color:#C5D9CC;padding:6px 10px;border-radius:14px;font-size:11px;text-align:left;max-width:100%">${intro.structured?`Unit ${u.n}: `:''}${E(u.title.length>38?u.title.slice(0,37)+'…':u.title)}</button>`).join('')}</div></div>`).join('');
+}
+function welcomeHtml(){
+  if(!intro) return card('Upload a PDF (or pick one above) and I will teach you from it. 📚');
+  const nU=intro.modules.reduce((a,m)=>a+m.units.length,0);
+  return card(`<div style="font-weight:800;color:#fff;margin-bottom:4px">Hi! I'm your AI Tutor 👋</div>
+    I've read <b style="color:#fff">${E(intro.title)}</b> - ${intro.pages} pages${intro.structured?`, ${intro.modules.length} modules and ${nU} units`:''}. Everything I teach comes from these pages, and I'll show you where.
+    <div style="margin-top:10px;font-weight:700;color:#E8F5EC">What would you like to do?</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${hi('🎯 Quiz me','quizMe()')}${cb('📚 What are the main topics?','ask(\'What are the main topics in this material?\')')}${cb('💡 Explain the most important idea','ask(\'Explain the most important idea in this material simply\')')}</div>
+    <div style="margin-top:12px;font-weight:700;color:#E8F5EC">Or pick a ${intro.structured?'unit':'part'} and I'll teach it:</div>${topicsHtml()}`);
+}
+function bubble(m,i){
+  if(m.role==='user') return `<div style="display:flex;justify-content:flex-end;margin-bottom:14px"><div style="max-width:82%;background:#1A2F1E;border:1px solid #2AF598;color:#E8F5EC;border-radius:16px 16px 4px 16px;padding:10px 14px;font-size:13px;line-height:1.6;white-space:pre-wrap">${E(m.content)}</div></div>`;
+  const src=(m.pages&&m.pages.length)?`<div style="margin-top:8px;font-size:10px;color:#7A9A85;font-weight:700">SOURCES: ${m.pages.map(p=>`<span style="color:#2AF598;background:rgba(42,245,152,.1);border:1px solid rgba(42,245,152,.25);border-radius:10px;padding:1px 7px;margin-right:4px">${E(p)}</span>`).join('')}</div>`:'';
+  const st=m.status?`<div style="font-size:11px;color:#2AF598;margin-bottom:6px">${E(m.status)}</div>`:'';
+  const last=i===chat.length-1&&!busy;
+  const sug=(last&&m.suggestions&&m.suggestions.length)?`<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${m.suggestions.map((s,k)=>`<button onclick="askSug(${k})" style="cursor:pointer;background:transparent;border:1px solid #2AF598;color:#2AF598;padding:6px 11px;border-radius:16px;font-size:11px;text-align:left">${E(s)}</button>`).join('')}</div>`:'';
+  return card(`${st}${m.content?CM.md(m.content):'<span style="color:#7A9A85">Thinking...</span>'}${src}${sug}`);
+}
+function paint(){
+  msgs.innerHTML=welcomeHtml()+chat.map(bubble).join('');
+  msgs.scrollTop=chat.length?msgs.scrollHeight:0;
+  document.getElementById('quick').innerHTML=[hi('🎯 Quiz me','quizMe()'),cb('💡 Explain simpler','simpler()'),cb('🧩 Give an example','example()'),cb('📋 Topics','topics()'),cb('⬇ Download notes','downloadChat()')].join('')+'<div style="width:100%;height:2px"></div>';
+  const c=document.getElementById('challenge');
+  if(pending){ c.style.display='block'; c.innerHTML=`🎯 <b style="color:#fff">Your turn:</b> ${E(pending.question)} <button onclick="skipQ()" style="margin-left:8px;cursor:pointer;background:transparent;border:1px solid #1C3324;color:#8BA89A;padding:3px 10px;border-radius:12px;font-size:11px">Skip</button>`; inp.placeholder='Type your answer to the question above...'; }
+  else { c.style.display='none'; inp.placeholder='Ask your tutor anything about your PDF... (Enter to send)'; }
+}
+async function loadIntro(){
+  intro=null; pending=null; lastTopic='';
+  try{ chat=JSON.parse(localStorage.getItem(key())||'[]'); }catch{ chat=[]; }
+  paint();
+  if(!sel.value) return;
+  try{ const d=await (await fetch('/api/tutor/intro/'+sel.value)).json(); if(!d.error){ intro=d; } }catch{}
+  paint();
+}
+async function downloadChat(){ if(!chat.filter(m=>m.content).length) return alert('Chat with your tutor first, then download the notes.'); try{ await CMPDF.chat({title:(sel.options[sel.selectedIndex]?.text||'AI Tutor').replace(/\s+-\s+\d+\s+pages?$/i,''),messages:chat}); }catch(e){ alert('PDF error: '+e.message); } }
+function save(){ try{ localStorage.setItem(key(),JSON.stringify(chat.slice(-40).map(m=>({role:m.role,content:m.content,pages:m.pages})))); }catch{} }
+CM.materials(sel, loadIntro);
+CM.uploader(document.getElementById('uploadSlot'),{reload:()=>CM.materials(sel,loadIntro)});
+
+async function send(label,body){
+  if(busy) return; if(!sel.value) return alert('Upload a PDF first (use the Upload PDF button above).');
+  busy=true; document.getElementById('sendBtn').disabled=true;
+  const history=chat.filter(m=>m.content).map(m=>({role:m.role,content:m.content}));
+  chat.push({role:'user',content:label}); const a={role:'assistant',content:'',pages:[],status:'Searching your PDF...',suggestions:[]}; chat.push(a); paint();
+  let done=null;
+  try{
+    done=await CM.stream('/api/tutor',Object.assign({material_id:sel.value,history,general:document.getElementById('general').checked,topic:lastTopic},body),ev=>{
+      if(ev.type==='step'&&ev.key==='search') a.status=ev.desc; else if(ev.type==='step'&&ev.key==='answer') a.status=ev.done?'':ev.desc;
+      else if(ev.type==='sources') a.pages=ev.pages; else if(ev.type==='token') a.content+=ev.text;
+      else if(ev.type==='suggestions') a.suggestions=ev.items; else if(ev.type==='challenge') pending={question:ev.question,pages:ev.pages};
+      paint();
+    });
+    a.status=''; if(done.topic) lastTopic=done.topic;
+  }catch(e){ a.status=''; a.content=(a.content?a.content+'\n\n':'')+'Error: '+e.message; }
+  busy=false; document.getElementById('sendBtn').disabled=false; paint(); save(); inp.focus();
+}
+function ask(text){ text=(text||'').trim(); if(!text) return; inp.value=''; inp.style.height='auto';
+  if(pending){ const ch=pending; pending=null; lastTopic=ch.question; return send(text,{mode:'grade',message:text,challenge:ch}); }
+  lastTopic=''; return send(text,{mode:'chat',message:text}); }
+const askSug=k=>{ const a=chat[chat.length-1]; if(a&&a.suggestions[k]){ const s=a.suggestions[k];
+  if(/^Quiz me on Unit/i.test(s)||/^Ask me another/i.test(s)||/^Quiz me on something/i.test(s)) return quizMe();
+  if(/simply$/i.test(s)&&/^Explain the hardest/i.test(s)) return send(s,{mode:'simple',message:s});
+  return ask(s); } };
+function quizMe(){ pending=null; return send('🎯 Quiz me',{mode:'quizme',message:'quiz me',topic:lastTopic}); }
+function simpler(){ if(!chat.length) return ask('Explain the most important idea in this material simply'); return send('💡 Explain that more simply',{mode:'simple',message:'Explain that more simply',topic:lastTopic}); }
+function example(){ if(!chat.length) return ask('Give me an example from this material'); return send('🧩 Give me an example',{mode:'example',message:'Give me an example',topic:lastTopic}); }
+function teach(m,u){ const un=(intro.modules.find(x=>x.n===m)||{units:[]}).units.find(x=>x.n===u)||{title:''}; pending=null; return send(`📖 Teach me ${intro.structured?`Module ${m} Unit ${u}`:'this part'}: ${un.title}`,{mode:'unit',module:m,unit:u,message:'teach'}); }
+function topics(){ chat.push({role:'assistant',content:'',pages:[],status:'',suggestions:[],topics:true}); msgs.insertAdjacentHTML('beforeend',card(`<div style="font-weight:700;color:#E8F5EC">Pick a ${intro&&intro.structured?'unit':'part'} and I'll teach it:</div>${topicsHtml()}`)); chat.pop(); msgs.scrollTop=msgs.scrollHeight; }
+function skipQ(){ pending=null; paint(); }
+document.getElementById('sendBtn').onclick=()=>ask(inp.value);
+inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); ask(inp.value); } });
+inp.addEventListener('input',()=>{ inp.style.height='auto'; inp.style.height=Math.min(140,inp.scrollHeight)+'px'; });
+document.getElementById('clearBtn').onclick=()=>{ if(!chat.length||!confirm('Clear this conversation?')) return; chat=[]; pending=null; lastTopic=''; localStorage.removeItem(key()); paint(); };
+
+</script>
+</body>
+</html>

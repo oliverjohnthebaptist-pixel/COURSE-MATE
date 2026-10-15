@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CourseMate - NOUN</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<meta property="og:image" content="logo.png">
+<meta property="og:title" content="GradePadi - NOUN GPA Calculator">
+<meta property="og:description" content="GradePadi - NOUN CGPA Calculator, Past Questions, TMA, Summary">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#08130E;color:#E8EDE7;overflow-x:hidden}
+.nav{display:flex;justify-content:space-between;align-items:center;padding:12px 5%;background:#08130E;border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;z-index:50}
+.logo{display:flex;align-items:center;gap:12px;font-weight:800;font-size:19px}.logo-img{width:68px;height:68px;display:flex;align-items:center;justify-content:center}.logo-img img{width:100%;height:100%;object-fit:contain}.logo span{color:#2AF598}
+.btn{padding:11px 24px;border-radius:999px;font-weight:800;font-size:13px;cursor:pointer;border:none;transition:0.2s}
+.btn-green{background:#2AF598;color:#000}.btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.2);color:#fff}
+.hero{display:grid;grid-template-columns:1.15fr 0.85fr;gap:40px;padding:60px 5% 40px;align-items:center}
+.badge{display:inline-flex;align-items:center;gap:8px;border:1px solid #1E3A29;background:#13281D;color:#2AF598;padding:8px 14px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:1px;margin-bottom:18px}
+.dot{width:8px;height:8px;background:#2AF598;border-radius:50%;animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(42,245,152,0.7)}70%{box-shadow:0 0 0 8px rgba(42,245,152,0)}100%{box-shadow:0 0 0 0 rgba(42,245,152,0)}}
+h1{font-size:56px;line-height:0.9;letter-spacing:-2.5px;font-weight:800}.g{color:#2AF598}
+.hero p{font-family:'Inter';color:#9AB0A2;margin:16px 0 26px;max-width:520px;line-height:1.7;font-size:15px}
+.btn-row{display:flex;gap:14px;flex-wrap:wrap}
+.btn-white{background:#E8EDE7;color:#08130E;padding:15px 28px;border-radius:999px;font-weight:800;font-size:14px;cursor:pointer;border:none}
+.btn-line{border:1.5px solid rgba(255,255,255,0.25);color:#fff;padding:15px 28px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer;background:transparent}
+.card{background:linear-gradient(180deg,#14281D,#0E2016);border:1px solid rgba(255,255,255,0.07);border-radius:18px;padding:18px;margin-bottom:12px}
+.counter{font-size:30px;font-weight:800}
+.section{padding:70px 5%}
+.reveal{opacity:0;transform:translateY(30px);transition:0.7s}.reveal.active{opacity:1;transform:translateY(0)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px;overflow-y:auto}
+.modal-bg.show{display:flex}
+.modal-box{width:100%;max-width:460px;background:#0F1E15;border:1px solid rgba(255,255,255,0.1);border-radius:22px;padding:28px;max-height:92vh;overflow-y:auto;animation:pop 0.25s ease}
+@keyframes pop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-header{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:20px;text-align:center}
+.modal-logo{width:84px;height:84px;display:flex;align-items:center;justify-content:center}.modal-logo img{width:100%;height:100%;object-fit:contain}
+.input-wrap{position:relative;margin-bottom:12px}
+.input,.select{width:100%;padding:13px 14px;border-radius:12px;background:#08130E;border:1px solid rgba(255,255,255,0.12);color:#fff;outline:none;font-size:13px;font-family:'Inter'}
+.input:focus,.select:focus{border-color:#2AF598}
+.eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer}
+.check-row{display:flex;align-items:center;gap:8px;margin:12px 0;font-size:12px;color:#9AB0A2}
+
+/* CONGRATULATIONS WITH ANIMATION - DO NOT REMOVE */
+#congratsOverlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(14px);display:none;align-items:center;justify-content:center;z-index:200;padding:20px}
+#congratsOverlay.show{display:flex}
+.congrats-card{width:100%;max-width:440px;background:linear-gradient(180deg,#14281D,#0E2016);border:2px solid #2AF598;border-radius:24px;padding:32px;text-align:center;animation:popIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275);box-shadow:0 20px 60px rgba(42,245,152,0.35)}
+.congrats-icon{font-size:72px;margin-bottom:12px;animation:bounceIcon 1s ease infinite, glow 2s ease infinite}
+.congrats-title{color:#2AF598;font-size:26px;font-weight:800;margin-bottom:10px;animation:slideUp 0.5s ease 0.2s both}
+.congrats-msg{color:#E8EDE7;line-height:1.6;font-family:'Inter';font-size:14px;animation:slideUp 0.5s ease 0.3s both}
+.congrats-btn{margin-top:22px;width:100%;background:#2AF598;color:#000;border:none;padding:14px;border-radius:14px;font-weight:800;cursor:pointer;animation:slideUp 0.5s ease 0.4s both;transition:0.2s}
+.congrats-btn:hover{transform:scale(1.02);box-shadow:0 0 20px rgba(42,245,152,0.5)}
+@keyframes popIn{0%{transform:scale(0.5);opacity:0}60%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+@keyframes bounceIcon{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-12px) scale(1.1)}}
+@keyframes glow{0%,100%{filter:drop-shadow(0 0 10px rgba(42,245,152,0.5))}50%{filter:drop-shadow(0 0 25px rgba(42,245,152,0.9))}}
+@keyframes slideUp{0%{transform:translateY(20px);opacity:0}100%{transform:translateY(0);opacity:1}}
+.confetti{position:absolute;width:10px;height:10px;background:#2AF598;animation:confettiFall 3s ease-out infinite}
+@keyframes confettiFall{0%{transform:translateY(-100vh) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+
+#pricing .card:hover{transform:translateY(-4px);transition:0.2s}
+#pricing .card:nth-child(2):hover{transform:scale(1.03) translateY(-4px)}
+@media(max-width:900px){.hero{grid-template-columns:1fr}h1{font-size:40px}.logo-img{width:56px;height:56px}#pricing .card:nth-child(2){transform:scale(1)}#pricing .card:nth-child(2):hover{transform:translateY(-4px)}}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="logo"><div class="logo-img"><img src="logo.png"></div>Course<span>Mate</span></div>
+  <div style="display:flex;gap:12px;align-items:center"><a href="#pricing" style="color:#8CA898;text-decoration:none;font-size:13px;font-weight:700">Pricing</a><button class="btn btn-ghost" onclick="openAuth('login')">Login</button><button class="btn btn-green" onclick="openAuth('signup')">Sign Up</button></div>
+</div>
+
+<div class="hero">
+  <div>
+    <div class="badge"><span class="dot"></span> NOUN STUDENTS ARE WINNING RIGHT NOW</div>
+    <h1>From 300-Page<br><span class="g">Stress to A-Grade Success</span></h1>
+    <p>Upload your PDF and get concise summaries, accurate TMA solutions with verified page references, and focused exam preparation — all from your own material.</p>
+    <div class="btn-row">
+      <button class="btn-white" onclick="openAuth('signup')">Start Learning — Free</button>
+      <button class="btn-line" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">See Pricing</button>
+    </div>
+  </div>
+  <div>
+    <div class="card"><div style="font-size:10px;color:#6E8A78;font-weight:700;letter-spacing:1px">STUDENTS HELPED</div><div class="counter" id="count">10,853</div><div style="font-size:11px;color:#7D9A88;margin-top:4px">Verified NOUN Students</div></div>
+    <div class="card"><div style="font-size:10px;color:#6E8A78;font-weight:700;letter-spacing:1px">FREE PLAN INCLUDES</div><div style="font-size:12px;color:#8CA898;margin-top:8px;line-height:1.8;font-family:'Inter'">✓ 3 PDFs • 15 TMA • Summaries • 20 Quizzes<br><span style="color:#8CA898">✓ 20 AI Tutor chats — Starter gives unlimited</span></div></div>
+    <div class="card" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><div style="font-size:10px;color:#6E8A78">TIME SAVED</div><div class="counter" style="color:#2AF598">4.5h</div><div style="font-size:11px;color:#7D9A88">Average per course</div></div><div style="border-left:1px solid rgba(255,255,255,0.06);padding-left:12px"><div style="font-size:10px;color:#6E8A78">BEFORE → AFTER</div><div class="counter">F → A</div><div style="font-size:11px;color:#7D9A88">Academic Improvement</div></div></div>
+  </div>
+</div>
+
+<section class="section" id="features">
+  <h2 class="reveal" style="text-align:center;font-size:34px;letter-spacing:-1.5px">Everything You Need to Pass</h2>
+  <p class="reveal" style="text-align:center;color:#8CA898;font-size:13px;margin-top:8px;font-family:'Inter'">Built specifically for NOUN students</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:28px">
+    <div class="card reveal"><div style="font-weight:700;margin-bottom:6px">Answers From Your Material Only</div><div style="font-size:12.5px;color:#8CA898;line-height:1.6;font-family:'Inter'">If the answer is not in your uploaded document, the system clearly indicates it is not found. No assumptions.</div></div>
+    <div class="card reveal" style="transition-delay:0.15s"><div style="font-weight:700;margin-bottom:6px">Exam-Ready Summary</div><div style="font-size:12.5px;color:#8CA898;line-height:1.6;font-family:'Inter'">Transform 300 pages into a clear 2-page summary you can review in 30 minutes before your exam.</div></div>
+    <div class="card reveal" style="transition-delay:0.3s"><div style="font-weight:700;margin-bottom:6px">TMA With Verified References</div><div style="font-size:12.5px;color:#8CA898;line-height:1.6;font-family:'Inter'">Every TMA solution includes the correct option, detailed explanation, and exact page number for verification.</div></div>
+  </div>
+</section>
+
+<!-- PRICING v1: Free 3 PDFs / 15 TMA / 20 chats / 20 quizzes; Starter 7 PDFs / 70 TMA / unlimited chats / 100 quizzes N4,500 -->
+<section class="section" id="pricing" style="background:#0B1A12;border-top:1px solid #1C3324">
+  <h2 class="reveal" style="text-align:center;font-size:34px;letter-spacing:-1.5px">Choose Your Plan</h2>
+  <p class="reveal" style="text-align:center;color:#8CA898;font-size:13px;margin-top:8px;font-family:'Inter'">Free = 3 courses (15 TMA) • Starter = 7 courses (70 TMA) ₦4,500/month</p>
+  
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:32px;max-width:1100px;margin-left:auto;margin-right:auto">
+    
+    <div class="card reveal">
+      <div style="display:inline-block;background:#111F18;border:1px solid #1C3324;border-radius:20px;padding:6px 14px;font-size:10px;font-weight:800;color:#8CA898;margin-bottom:14px;letter-spacing:1px">FREE</div>
+      <h3 style="font-size:22px;margin-bottom:6px">Free Plan</h3>
+      <p style="font-size:12px;color:#7A9A85;margin-bottom:16px;font-family:'Inter'">Test 3 courses</p>
+      <div style="margin-bottom:18px"><span style="font-size:36px;font-weight:800">₦0</span><span style="color:#7A9A85;font-size:13px"> / forever</span></div>
+      <ul style="list-style:none;padding:0;margin:0 0 20px 0;font-size:12.5px;color:#9AB0A2;line-height:2.2;font-family:'Inter'">
+        <li>✓ 3 course uploads (PDFs)</li>
+        <li>✓ 15 TMA answers</li>
+        <li>✓ Module-by-module summaries</li>
+        <li>✓ 20 quizzes</li>
+        <li>✓ 20 AI Tutor chats</li>
+        <li>✓ Download PDF with CourseMate letterhead</li>
+      </ul>
+      <button class="btn" style="width:100%;background:transparent;border:1.5px solid #1C3324;color:#fff;padding:12px;border-radius:999px;font-weight:800" onclick="openAuth('signup')">Start Free - 3 Courses</button>
+    </div>
+
+    <div class="card reveal" style="border:2px solid #2AF598;position:relative;transform:scale(1.03);background:linear-gradient(180deg,#162E1F,#0E2016);box-shadow:0 0 30px rgba(42,245,152,0.15);transition-delay:0.15s">
+      <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#2AF598;color:#000;padding:4px 14px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:1px">MOST POPULAR - 7 PDFs</div>
+      <div style="display:inline-block;background:#2AF598;color:#000;border-radius:20px;padding:6px 14px;font-size:10px;font-weight:800;margin-bottom:14px;letter-spacing:1px;margin-top:10px">STARTER</div>
+      <h3 style="font-size:22px;margin-bottom:6px">Starter Plan</h3>
+      <p style="font-size:12px;color:#7A9A85;margin-bottom:16px;font-family:'Inter'">7 courses - 77% of semester</p>
+      <div style="margin-bottom:4px"><span style="font-size:36px;font-weight:800">₦4,500</span><span style="color:#7A9A85;font-size:13px"> / month</span></div>
+      <div style="font-size:11px;color:#2AF598;margin-bottom:18px;font-family:'Inter'">70 TMA = 7 courses × 10</div>
+      <ul style="list-style:none;padding:0;margin:0 0 20px 0;font-size:12.5px;color:#E8EDE7;line-height:2.2;font-family:'Inter'">
+        <li>✓ 7 course uploads (PDFs)</li>
+        <li>✓ 70 TMA answers / month</li>
+        <li>✓ Unlimited summaries</li>
+        <li>✓ 100 quizzes / month</li>
+        <li>✓ Unlimited AI Tutor chats</li>
+        <li>✓ Export PDF + page refs</li>
+      </ul>
+      <p style="font-size:12px;color:#9AB0A2;line-height:1.6;margin-bottom:14px;font-family:'Inter',sans-serif">Pay by bank transfer, submit your receipt and transfer screenshot, then receive an activation code after review.</p>
+      <button class="btn btn-green" style="width:100%;padding:12px;border-radius:999px;font-weight:800" onclick="location.href='/payment.html'">View payment details & submit proof</button>
+    </div>
+
+
+  </div>
+</section>
+
+<div class="modal-bg" id="loginModal" onclick="if(event.target===this) closeAuth()"><div class="modal-box"><div style="text-align:right"><button onclick="closeAuth()" style="background:none;border:none;color:#8CA898;font-size:24px;cursor:pointer">×</button></div><div class="modal-header"><div class="modal-logo"><img src="logo.png"></div><div style="font-weight:800;font-size:22px">Course<span style="color:#2AF598">Mate</span></div></div><button type="button" onclick="googleAuth()" style="width:100%;height:46px;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1f1f1f;border:none;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer;font-family:'Inter',sans-serif"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.100 0 24s.9 7.600 2.600 10.800l7.900-6.100z"/><path fill="#34A853" d="M24 48c6.300 0 11.600-2.100 15.500-5.700l-7.600-5.900c-2.100 1.400-4.800 2.300-7.900 2.300-6.300 0-11.600-4.100-13.500-9.800l-7.900 6.100C6.500 42.600 14.600 48 24 48z"/></svg>Continue with Google</button><div style="display:flex;align-items:center;gap:10px;margin:14px 0;color:#5a7a66;font-size:12px"><div style="flex:1;height:1px;background:#1C3324"></div>or use email<div style="flex:1;height:1px;background:#1C3324"></div></div><div class="input-wrap"><input class="input" id="loginEmail" placeholder="Email Address"></div><div class="input-wrap"><input class="input" id="loginPass" type="password" placeholder="Password" style="padding-right:40px"><span class="eye" onclick="toggleEye('loginPass',this)">👁</span></div><div class="check-row" style="justify-content:space-between"><div style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="remember" checked><label for="remember">Remember me</label></div><span style="color:#2AF598;cursor:pointer;font-weight:700" onclick="forgotPassword()">Forgot Password?</span></div><button class="btn btn-green" style="width:100%;padding:14px;border-radius:14px" onclick="doLogin()">Login</button><div style="text-align:center;margin-top:12px;font-size:12px;color:#8CA898">Don't have an account? <span style="color:#2AF598;cursor:pointer;font-weight:700" onclick="openAuth('signup')">Create Account</span></div></div></div>
+
+<div class="modal-bg" id="signupModal" onclick="if(event.target===this) closeAuth()"><div class="modal-box"><div style="text-align:right"><button onclick="closeAuth()" style="background:none;border:none;color:#8CA898;font-size:24px;cursor:pointer">×</button></div><div class="modal-header"><div class="modal-logo"><img src="logo.png"></div><div style="font-weight:800;font-size:22px">Course<span style="color:#2AF598">Mate</span></div></div><button type="button" onclick="googleAuth()" style="width:100%;height:46px;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1f1f1f;border:none;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer;font-family:'Inter',sans-serif"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.100 0 24s.9 7.600 2.600 10.800l7.900-6.100z"/><path fill="#34A853" d="M24 48c6.300 0 11.600-2.100 15.500-5.700l-7.600-5.900c-2.100 1.400-4.800 2.300-7.900 2.300-6.300 0-11.600-4.100-13.500-9.800l-7.900 6.100C6.500 42.600 14.600 48 24 48z"/></svg>Continue with Google</button><div style="display:flex;align-items:center;gap:10px;margin:14px 0;color:#5a7a66;font-size:12px"><div style="flex:1;height:1px;background:#1C3324"></div>or use email<div style="flex:1;height:1px;background:#1C3324"></div></div><div class="input-wrap"><input class="input" id="s_fullname" placeholder="Full Name"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="input-wrap"><input class="input" id="s_nickname" placeholder="Nickname"></div><div class="input-wrap"><input class="input" id="s_phone" placeholder="Phone"></div></div><div class="input-wrap"><input class="input" id="s_matric" placeholder="Matric Number (optional)"></div><div class="input-wrap"><input class="input" id="s_email" placeholder="Email Address"></div><label for="s_faculty" style="display:block;color:#8CA898;font-size:12px;margin:8px 0 4px">Faculty</label><select class="select" id="s_faculty" onchange="updateProgrammes()"><option value="">Select Faculty</option></select><label for="s_program" style="display:block;color:#8CA898;font-size:12px;margin:8px 0 4px">Programme</label><select class="select" id="s_program" disabled><option value="">Select faculty first</option></select><div class="input-wrap"><input class="input" id="s_pass" type="password" placeholder="Create Password" style="padding-right:40px"><span class="eye" onclick="toggleEye('s_pass',this)">👁</span></div><button class="btn btn-green" id="createBtn" style="width:100%;padding:14px;border-radius:14px;font-weight:800" onclick="doSignup()">Create Account</button><div style="text-align:center;margin-top:12px;font-size:12px;color:#8CA898">Already have an account? <span style="color:#2AF598;cursor:pointer;font-weight:700" onclick="openAuth('login')">Login</span></div></div></div>
+
+<!-- CONGRATULATIONS MODAL WITH ANIMATION - FINAL -->
+<div id="congratsOverlay" onclick="if(event.target===this) closeCongrats()"><div class="congrats-card" style="position:relative;overflow:hidden">
+  <div class="congrats-icon" id="congratsIcon">🎉</div>
+  <h2 class="congrats-title" id="congratsTitle">Congratulations!</h2>
+  <p class="congrats-msg" id="congratsMsg"></p>
+  <button class="congrats-btn" id="congratsBtn">Continue to Dashboard 🚀</button>
+</div></div>
+
+<script src="/js/faculty-programmes.js"></script>
+<script>
+const SUPABASE_URL='https://lohjifbvrbnqxamroxtp.supabase.co';const SUPABASE_ANON_KEY='sb_publishable_-3UptBHer0fKyelp_a3z-g_jfflZF0l';const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const facultyPrograms=window.COURSEMATE_FACULTY_PROGRAMMES;
+const facultySelect=document.getElementById('s_faculty');
+Object.keys(facultyPrograms).forEach(f=>{const o=document.createElement('option');o.value=f;o.textContent=f;facultySelect.appendChild(o);});
+function updateProgrammes(){
+  const f=facultySelect.value,p=document.getElementById('s_program');
+  p.replaceChildren();
+  if(!f){p.disabled=true;p.add(new Option('Select faculty first',''));return;}
+  p.disabled=false;p.add(new Option('Select programme',''));
+  [['Undergraduate Programmes',facultyPrograms[f].undergraduate],['Postgraduate Programmes (PGD, Masters, Ph.D)',facultyPrograms[f].postgraduate]].forEach(([label,programmes])=>{
+    const group=document.createElement('optgroup');group.label=label;
+    programmes.forEach(v=>group.appendChild(new Option(v,v)));
+    p.add(group);
+  });
+}
+function toggleEye(id,el){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';el.textContent=i.type==='password'?'👁':'🙈';}
+function openAuth(w){location.href=(w==='login'?'/login.html':'/signup.html');}   // full sign-in / sign-up pages
+function closeAuth(){document.getElementById('loginModal').classList.remove('show');document.getElementById('signupModal').classList.remove('show');}
+function closeCongrats(){document.getElementById('congratsOverlay').classList.remove('show');}
+
+function showCongrats(type,name,email){
+  closeAuth();
+  const overlay=document.getElementById('congratsOverlay');
+  const icon=document.getElementById('congratsIcon');
+  const title=document.getElementById('congratsTitle');
+  const msg=document.getElementById('congratsMsg');
+  const btn=document.getElementById('congratsBtn');
+  if(type==='signup'){
+    icon.textContent='🎉';
+    title.textContent=`Congratulations ${name}!`;
+    msg.innerHTML=`Your CourseMate account has been created successfully!<br><br>Welcome to <b style="color:#2AF598">NOUN • NATIONAL OPEN UNIVERSITY</b><br>Success System<br><br><span style="color:#8CA898;font-size:12px">${email}</span><br><br><span style="font-size:11px;color:#2AF598">✓ 3 PDFs • 15 TMA • 20 Quizzes • 20 AI chats - Free Plan Activated!</span>`;
+    btn.textContent='Start Learning — Free 🚀';
+    btn.onclick=()=>{window.location.href='public/html/dashboard.html';};
+    setTimeout(()=>{window.location.href='public/html/dashboard.html';},4500);
+  } else {
+    icon.textContent='👋';
+    title.textContent=`Welcome back, ${name}!`;
+    msg.innerHTML=`Great to see you again, ${name}!<br><br>Your NOUN success system is ready.<br>Ready to crush your TMAs today?<br><br><span style="color:#8CA898;font-size:12px">${email}</span>`;
+    btn.textContent='Go to Dashboard 🚀';
+    btn.onclick=()=>{window.location.href='public/html/dashboard.html';};
+    setTimeout(()=>{window.location.href='public/html/dashboard.html';},3500);
+  }
+  overlay.classList.add('show');
+  // confetti effect
+  for(let i=0;i<15;i++){
+    const c=document.createElement('div');c.className='confetti';
+    c.style.left=Math.random()*100+'%';c.style.background=['#2AF598','#FFD166','#E8EDE7'][Math.floor(Math.random()*3)];
+    c.style.animationDelay=Math.random()*0.5+'s';
+    c.style.animationDuration=(2+Math.random()*2)+'s';
+    document.querySelector('.congrats-card').appendChild(c);
+    setTimeout(()=>c.remove(),4000);
+  }
+}
+
+async function doSignup(){
+  const btn=document.getElementById('createBtn');btn.textContent='Creating...';btn.disabled=true;
+  const full=document.getElementById('s_fullname').value.trim(),nick=document.getElementById('s_nickname').value.trim(),phone=document.getElementById('s_phone').value.trim(),matric=document.getElementById('s_matric').value.trim(),email=document.getElementById('s_email').value.trim(),fac=document.getElementById('s_faculty').value,prog=document.getElementById('s_program').value,pass=document.getElementById('s_pass').value;
+  if(!full||!email||!fac||!prog||!pass){alert('Fill your name, email, faculty, programme and password');btn.textContent='Create Account';btn.disabled=false;return;}
+  if(pass.length<6){alert('Password must be 6+ chars');btn.textContent='Create Account';btn.disabled=false;return;}
+  try{
+    const{data,error}=await supabaseClient.auth.signUp({email,password:pass});
+    if(error) throw error;
+    if(data.user){
+      const{error:pErr}=await supabaseClient.from('profiles').insert({id:data.user.id,full_name:full,nickname:nick,phone,matric,email,faculty:fac,programme:prog,plan:'free'});
+      if(pErr) console.log('Profile insert warning:',pErr.message);
+    }
+    showCongrats('signup', full.split(' ')[0]||full, email);
+  }catch(e){alert('❌ '+e.message);}
+  btn.textContent='Create Account';btn.disabled=false;
+}
+
+async function googleAuth(){
+  try{
+    const { error } = await supabaseClient.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: location.origin + '/dashboard.html', queryParams:{ prompt:'select_account' } } });
+    if(error) throw error;                       // the browser now goes to Google, then comes back signed in
+  }catch(e){ alert('❌ Google sign-in is not ready yet: '+e.message); }
+}
+
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim(),pass=document.getElementById('loginPass').value.trim();
+  if(!email||!pass){alert('Enter email & password');return;}
+  try{
+    const{data,error}=await supabaseClient.auth.signInWithPassword({email,password:pass});
+    if(error) throw error;
+    let displayName=email.split('@')[0];
+    try{const{data:profile}=await supabaseClient.from('profiles').select('full_name,nickname').eq('id',data.user.id).single();if(profile) displayName=profile.nickname||profile.full_name?.split(' ')[0]||displayName;}catch{}
+    showCongrats('login', displayName, email);
+  }catch(e){if(e.message.includes('Invalid login credentials')){alert('❌ Wrong email or password. Check am well.');}else{alert('❌ '+e.message);}}
+}
+
+async function forgotPassword(){
+  const email=document.getElementById('loginEmail').value.trim();
+  if(!email){alert('⚠ Put your email for Login box first');return;}
+  try{const{error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'/public/html/reset-password.html'});if(error) throw error;alert('✅ Reset link sent to '+email+'\nCheck Gmail inbox (and Spam).');}catch(e){alert('❌ Error: '+e.message);}
+}
+
+let n=10853;setInterval(()=>{const el=document.getElementById('count');if(el){n++;el.textContent=n.toLocaleString();}},2500);
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('active')})},{threshold:0.15});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>

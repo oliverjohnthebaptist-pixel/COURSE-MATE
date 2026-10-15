@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Starter Payment - CourseMate</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <script src="/js/auth-fetch.js"></script>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#060D09;color:#E8F5EC;font:14px Inter,system-ui,sans-serif}
+    header{padding:18px 5%;background:#080E0A;border-bottom:1px solid #1C3324;display:flex;justify-content:space-between;align-items:center}
+    a{color:#2AF598}
+    main{max-width:760px;margin:0 auto;padding:28px 16px}
+    h1{font-size:28px;margin:0 0 8px}
+    h2{font-size:19px;margin:0 0 10px}
+    .muted{color:#9AB0A2;line-height:1.7}
+    .card{background:#101E14;border:1px solid #1C3324;border-radius:16px;padding:20px;margin:18px 0}
+    .account{background:linear-gradient(135deg,#123421,#0C2116);border:2px solid #2AF598;border-radius:16px;padding:22px;margin-top:16px}
+    .details{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;margin-top:16px}
+    .label{font-size:11px;color:#9AB0A2;letter-spacing:.5px}
+    .value{font-size:21px;font-weight:800;color:#fff;margin-top:5px}
+    .number{font-size:30px;letter-spacing:1.5px;color:#2AF598}
+    form{display:grid;gap:14px;margin-top:18px}
+    input[type=file]{display:block;margin-top:7px;max-width:100%}
+    button{border:0;border-radius:10px;padding:12px 16px;font-weight:800;cursor:pointer;background:#2AF598;color:#05210F;width:max-content}
+    button:disabled{opacity:.55;cursor:wait}
+    .status{min-height:24px;margin-top:12px;color:#9AB0A2}
+  </style>
+</head>
+<body>
+  <header>
+    <strong>CourseMate · Starter payment</strong>
+    <a href="/dashboard.html">← Back to dashboard</a>
+  </header>
+  <main>
+    <h1>Pay for Starter</h1>
+    <p class="muted">Transfer ₦4,500 using the account details below, then upload your payment receipt. Once your payment is reviewed, enter your activation code on this same page.</p>
+    <section class="account">
+      <div style="font-size:12px;color:#2AF598;font-weight:800;letter-spacing:1px">STARTER BANK TRANSFER · ₦4,500</div>
+      <div class="details">
+        <div><div class="label">BANK</div><div class="value">OPAY</div></div>
+        <div><div class="label">ACCOUNT NAME</div><div class="value">NGWOUKE OLIVER</div></div>
+        <div style="grid-column:1/-1"><div class="label">ACCOUNT NUMBER</div><div class="value number">7067159305</div></div>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Submit payment proof</h2>
+      <p class="muted">Sign in to your CourseMate account before submitting proof. Use the same account you’ll use to activate your plan. <a href="/login.html">Sign in</a> · <a href="/signup.html">Create account</a>.</p>
+      <form id="paymentProofForm">
+        <label>Payment receipt (image or PDF, max 8 MB)<input type="file" name="receipt" accept="image/jpeg,image/png,image/webp,application/pdf" required></label>
+        <button type="submit">Submit payment proof</button>
+      </form>
+      <div id="studentStatus" class="status" role="status"></div>
+    </section>
+    <section class="card">
+      <h2>Activate Starter</h2>
+      <p class="muted">Enter the activation code provided after your receipt is reviewed.</p>
+      <form id="activationForm">
+        <label for="activationCode">Activation code</label>
+        <input id="activationCode" autocomplete="off" placeholder="CM-XXXX-2026" maxlength="13" required style="padding:12px;border-radius:10px;background:#08130D;border:1px solid #31513B;color:#E8F5EC">
+        <button type="submit">Activate Starter</button>
+      </form>
+      <div id="activationStatus" class="status" role="status"></div>
+    </section>
+  </main>
+  <script src="/js/payment.js?v=2"></script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quiz</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<meta property="og:image" content="logo.png">
+<meta property="og:title" content="GradePadi - NOUN GPA Calculator">
+<link rel="stylesheet" href="../css/tma.css">
+<style>
+.topbar{
+  height:92px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  padding:0 18px!important;
+  background:#080E0A!important;
+  border-bottom:1px solid #1C3324!important;
+}
+.brand{display:flex!important;align-items:center!important;gap:14px!important}
+.logo-img{
+  width:80px!important;
+  height:80px!important;
+  border-radius:50%!important;
+  object-fit:cover!important;
+  border:3px solid #2AF598!important;
+  background:#0F2318!important;
+  display:block!important;
+}
+.brand-text h1{font-size:18px!important;color:white!important;margin:0!important;line-height:1!important}
+.brand-text p{font-size:9px!important;color:#2AF598!important;letter-spacing:1px!important;font-weight:700!important;margin-top:4px!important}
+.nav-wrap{background:#080E0A!important;padding:10px 18px!important;border-bottom:1px solid #1C3324!important}
+.nav{display:flex!important;gap:8px!important}
+.nav a{padding:8px 14px!important;border-radius:20px!important;background:#111F18!important;border:1px solid #1C3324!important;color:#8BA89A!important;text-decoration:none!important;font-size:12px!important}
+.nav a.active{background:#2AF598!important;color:#05210F!important;font-weight:800!important}
+.badge-acc{background:#2AF598;color:#05210F;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;display:inline-block;margin-left:8px}
+#status{color:#2AF598;font-size:11px;margin-top:8px;font-weight:700}
+.wrap{padding:18px; max-width:900px; margin:0 auto;}
+.card{background:#0F2318;border:1px solid #1C3324;border-radius:16px;padding:18px;margin-bottom:16px}
+.label{font-size:10px;color:#7A9A85;font-weight:700;letter-spacing:0.5px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">
+    <img class="logo-img" src="/logo.png?v=2" alt="C" onerror="this.src='../../logo.png'; this.onerror=null; this.src='/public/logo.png'">
+    <div class="brand-text"><h1>CourseMate</h1><p>NOUN • NATIONAL OPEN UNIVERSITY</p></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div style="text-align:right;line-height:1"><b style="font-size:12px;color:white;display:block">Oliver</b><span style="font-size:10px;color:#2AF598">Student</span></div>
+    <div style="width:38px;height:38px;border-radius:50%;background:#1A2F1E;border:1px solid #2AF598;display:grid;place-items:center;color:#2AF598;font-weight:800">O</div>
+  </div>
+</div>
+<div class="nav-wrap">
+  <div class="nav">
+    <a href="./dashboard.html">📊 Dashboard</a>
+    <a href="./materials.html">📚 Materials</a>
+    <a href="./tma.html">✅ TMA Solver</a>
+    <a href="./summary.html">📄 Summary</a>
+    <a href="./quiz.html" class="active">🎯 Quiz</a>
+    <a href="./chat.html">💬 AI Tutor</a>
+  </div>
+</div>
+<div class="wrap">
+  <div class="card" id="setupCard">
+    <h2 style="font-size:14px;margin-bottom:4px">Quiz From Your Material</h2>
+    <div style="font-size:12px;color:#7A9A85;margin-bottom:12px">Random questions from across your whole PDF - a new set every time, minimum 20 questions.</div>
+    <label class="label">SELECT COURSE MATERIAL (FROM YOUR UPLOADS)</label>
+    <select id="matSelect" style="width:100%;padding:12px;border-radius:10px;background:#08130D;color:white;border:1px solid #1C3324;margin-top:6px"></select>
+    <div id="uploadSlot"></div>
+    <label class="label" style="display:block;margin-top:12px;margin-bottom:6px">NUMBER OF QUESTIONS</label>
+    <div id="countChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    <label class="label" style="display:block;margin-top:12px;margin-bottom:6px">LEVEL</label>
+    <div id="levelChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    <div id="levelNote" style="font-size:11px;color:#7A9A85;margin-top:6px"></div>
+    <label class="label" style="display:block;margin-top:12px;margin-bottom:6px">FOCUS ON A TOPIC (OPTIONAL - LEAVE EMPTY FOR THE WHOLE MATERIAL)</label>
+    <input id="topic" placeholder="e.g. interpersonal communication, small arms" style="width:100%;padding:12px;border-radius:10px;background:#08130D;color:white;border:1px solid #1C3324;font-size:13px;outline:none">
+    <button id="goBtn" style="width:100%;margin-top:12px;height:44px;background:#2AF598;border:none;border-radius:10px;font-weight:800;cursor:pointer">Generate Quiz</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="card" id="quizCard" style="display:none">
+    <div id="panel"></div>
+    <div id="quiz"></div>
+  </div>
+
+  <div class="card" id="histCard" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h2 style="font-size:13px;color:#2AF598">Your Past Attempts For This Course</h2>
+      <button id="clearBtn" style="background:transparent;border:1px solid #ff4d4d;color:#ff4d4d;padding:6px 12px;border-radius:20px;font-size:11px;cursor:pointer">Clear</button>
+    </div>
+    <div id="histList"></div>
+  </div>
+</div>
+<script src="/js/auth-fetch.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="/js/letterhead.js"></script>
+<script src="../js/cm.js"></script>
+<script>
+const sel=document.getElementById('matSelect'), E=CM.esc, pr=CM.prefs();
+let count=pr.quizCount, level=pr.quizLevel, running=false, Q=null, idx=0, picks=[], locked=false;
+const LV={mixed:'Mixed',easy:'Easy',medium:'Medium',hard:'Hard'}, LC={easy:'#2AF598',medium:'#ffb347',hard:'#ff6b6b'};
+const NOTE={mixed:'Mixed = about 35% easy, 40% medium and 25% hard, shuffled together.',easy:'Easy = direct recall of facts and definitions.',medium:'Medium = understanding ideas (why / how / which best describes).',hard:'Hard = very close options that need careful understanding.'};
+const badge=l=>`<span style="font-size:10px;font-weight:800;color:#05210F;background:${LC[l]||'#2AF598'};border-radius:10px;padding:2px 8px">${(LV[l]||l).toUpperCase()}</span>`;
+function chips(){
+  document.getElementById('countChips').innerHTML=[20,30,40,50].map(n=>CM.chip(n,count===n,`setCount(${n})`)).join('');
+  document.getElementById('levelChips').innerHTML=['mixed','easy','medium','hard'].map(d=>CM.chip(LV[d],level===d,`setLevel('${d}')`)).join('');
+  document.getElementById('levelNote').textContent=NOTE[level];
+}
+function setCount(n){count=n;chips();} function setLevel(d){level=d;chips();} chips();
+
+async function loadHist(){
+  const list=document.getElementById('histList'), card=document.getElementById('histCard');
+  if(!sel.value){card.style.display='none';return;}
+  try{
+    const d=await (await fetch('/api/quiz/history/'+sel.value)).json();
+    if(!d.results.length){card.style.display='none';return;}
+    card.style.display='block';
+    list.innerHTML=d.results.slice(0,10).map(r=>{const p=r.total?Math.round(r.score/r.total*100):0; const lv=r.level||r.difficulty;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;background:#0E2016;border:1px solid #1C3324;border-radius:12px;padding:10px 14px;margin-bottom:8px;font-size:12px"><span style="color:#C5D9CC">${CM.fmtDate(r.at)} - ${E(LV[lv]||lv||'')} - ${r.total} questions</span><b style="color:${p>=70?'#2AF598':p>=50?'#ffb347':'#ff6b6b'}">${r.score}/${r.total} (${p}%)</b></div>`;}).join('');
+  }catch{}
+}
+CM.materials(sel, loadHist);
+CM.uploader(document.getElementById('uploadSlot'),{reload:()=>CM.materials(sel,loadHist)});
+
+document.getElementById('goBtn').onclick=async()=>{
+  if(running) return; if(!sel.value) return alert('Upload a PDF first (use the Upload PDF button above).');
+  running=true; const btn=document.getElementById('goBtn'); btn.disabled=true; btn.textContent='Building your quiz from the PDF...';
+  document.getElementById('quizCard').style.display='block'; document.getElementById('quiz').innerHTML='';
+  const pan=CM.panel(document.getElementById('panel'),{pill:'Writing questions from your PDF'});
+  document.getElementById('status').textContent='Starting...';
+  try{
+    const done=await CM.stream('/api/quiz/generate',{material_id:sel.value,count,level,topic:document.getElementById('topic').value.trim()},ev=>{ pan.event(ev); if(ev.type==='step'&&ev.live) document.getElementById('status').textContent=ev.live; });
+    pan.finish(); const b=done.quiz.breakdown; document.getElementById('status').textContent=`Done: ${done.quiz.count} questions ready (${b.easy} easy, ${b.medium} medium, ${b.hard} hard).`;
+    setTimeout(()=>{ document.getElementById('panel').innerHTML=''; start(done.quiz); },900);
+  }catch(e){ document.getElementById('panel').innerHTML=''; document.getElementById('quiz').innerHTML='<div style="color:#ff6b6b;padding:14px">Error: '+E(e.message)+'</div>'; document.getElementById('status').textContent=''; }
+  btn.disabled=false; btn.textContent='Generate Quiz'; running=false;
+};
+
+function start(q){ Q=q; idx=0; picks=[]; locked=false; showQ(); document.getElementById('quizCard').scrollIntoView({behavior:'smooth',block:'start'}); }
+function showQ(){
+  const q=Q.questions[idx], n=Q.questions.length;
+  const bar=`<div style="height:6px;background:#08130D;border-radius:6px;overflow:hidden;margin:8px 0 16px"><div style="height:100%;width:${idx/n*100}%;background:#2AF598"></div></div>`;
+  const opts=['a','b','c','d'].map(l=>`<button data-l="${l}" onclick="pick('${l}')" style="display:flex;gap:10px;text-align:left;width:100%;cursor:pointer;background:#0E2016;border:1px solid #1C3324;border-radius:12px;padding:12px 14px;margin-bottom:9px;color:#E8F5EC;font-size:13px;line-height:1.5"><b style="color:#2AF598">${l.toUpperCase()}</b><span>${E(q.options[l])}</span></button>`).join('');
+  document.getElementById('quiz').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#7A9A85;font-weight:700"><span>QUESTION ${idx+1} OF ${n}</span><span style="display:flex;gap:8px;align-items:center">${q.where?`<span>${E(q.where)}</span>`:''}${badge(q.level)}</span></div>${bar}
+    <div style="font-weight:800;font-size:15px;line-height:1.5;color:#fff;margin-bottom:14px">${E(q.question)}</div>${opts}<div id="fb"></div>`;
+  locked=false;
+}
+function pick(l){
+  if(locked) return; locked=true;
+  const q=Q.questions[idx]; picks[idx]=l;
+  document.querySelectorAll('#quiz button[data-l]').forEach(b=>{
+    const x=b.dataset.l; b.style.cursor='default';
+    if(x===q.answer){ b.style.background='rgba(42,245,152,.14)'; b.style.borderColor='#2AF598'; }
+    else if(x===l){ b.style.background='rgba(255,107,107,.12)'; b.style.borderColor='#ff6b6b'; }
+    else b.style.opacity='.55';
+  });
+  const ok=l===q.answer, last=idx===Q.questions.length-1;
+  document.getElementById('fb').innerHTML=`
+    <div style="margin-top:6px;padding:14px;border-radius:12px;background:#0B1A12;border:1px solid #1C3324">
+      <div style="font-weight:800;font-size:13px;color:${ok?'#2AF598':'#ff6b6b'}">${ok?'Correct!':'Not quite.'} ${ok?'':`The answer is ${q.answer.toUpperCase()}. ${E(q.options[q.answer])}`}</div>
+      <div style="font-size:12px;color:#C5D9CC;line-height:1.65;margin-top:6px">${E(q.explanation)}</div>
+      <div style="font-size:12px;color:#8BA89A;font-style:italic;line-height:1.6;margin-top:8px">“${E(q.page_label)}: ${E(q.evidence)}”</div>
+    </div>
+    <button onclick="${last?'finish()':'next()'}" style="width:100%;margin-top:12px;height:44px;background:#2AF598;border:none;border-radius:10px;font-weight:800;cursor:pointer">${last?'See My Score':'Next Question'}</button>`;
+}
+function next(){ idx++; showQ(); }
+async function downloadQuizPdf(){ try{ await CMPDF.quiz({title:(Q.title||'Quiz'),questions:Q.questions,picks}); }catch(e){ alert('PDF error: '+e.message); } }
+
+async function finish(){
+  const n=Q.questions.length, score=Q.questions.filter((q,i)=>picks[i]===q.answer).length, pct=Math.round(score/n*100);
+  const by={}; ['easy','medium','hard'].forEach(l=>{ const qs=Q.questions.map((q,i)=>({q,i})).filter(x=>x.q.level===l); if(qs.length) by[l]={score:qs.filter(x=>picks[x.i]===x.q.answer).length,total:qs.length}; });
+  try{ await fetch('/api/quiz/result',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({material_id:Q.material_id,title:Q.title,level:Q.level,score,total:n,by_level:by})}); }catch{}
+  const wrong=Q.questions.map((q,i)=>({q,i})).filter(x=>picks[x.i]!==x.q.answer);
+  const msg=pct>=80?'Excellent work!':pct>=60?'Good job - keep revising.':'Keep going - review the pages below and try again.';
+  const lvBox=Object.entries(by).map(([l,v])=>`<div style="flex:1;min-width:90px;background:#0E2016;border:1px solid #1C3324;border-radius:12px;padding:10px;text-align:center"><div style="margin-bottom:4px">${badge(l)}</div><div style="font-size:16px;font-weight:800;color:#fff">${v.score}/${v.total}</div></div>`).join('');
+  document.getElementById('quiz').innerHTML=`
+    <div style="text-align:center;padding:10px 0 14px">
+      <div style="font-size:40px;font-weight:800;color:${pct>=70?'#2AF598':pct>=50?'#ffb347':'#ff6b6b'}">${score}/${n}</div>
+      <div style="font-size:13px;color:#C5D9CC;margin-top:2px">${pct}% - ${msg}</div></div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">${lvBox}</div>
+    ${wrong.length?`<div style="font-weight:800;font-size:13px;color:#fff;margin-bottom:10px">Review what you missed (${wrong.length})</div>`+wrong.map(({q,i})=>`
+      <div style="background:#0E2016;border:1px solid #1C3324;border-radius:12px;padding:14px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px"><span style="font-size:10px;color:#7A9A85;font-weight:700">${E(q.where||'')}</span>${badge(q.level)}</div>
+        <div style="font-weight:700;font-size:13px;color:#fff;margin-bottom:6px">${i+1}. ${E(q.question)}</div>
+        <div style="font-size:12px;color:#ff6b6b">Your answer: ${picks[i]?picks[i].toUpperCase()+'. '+E(q.options[picks[i]]):'none'}</div>
+        <div style="font-size:12px;color:#2AF598;font-weight:700;margin:2px 0 6px">Correct: ${q.answer.toUpperCase()}. ${E(q.options[q.answer])}</div>
+        <div style="font-size:12px;color:#C5D9CC;line-height:1.6">${E(q.explanation)}</div>
+        <div style="font-size:11px;color:#8BA89A;font-style:italic;margin-top:6px">“${E(q.page_label)}: ${E(q.evidence)}”</div>
+      </div>`).join(''):'<div style="text-align:center;color:#2AF598;font-weight:700;font-size:13px;margin-bottom:10px">Perfect score - nothing to review!</div>'}
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button onclick="downloadQuizPdf()" style="flex:1;height:44px;background:#111F18;border:1px solid #1C3324;color:#E8F5EC;border-radius:10px;font-weight:800;cursor:pointer">⬇ Download PDF</button>
+      <button onclick="start(Q)" style="flex:1;height:44px;background:#111F18;border:1px solid #2AF598;color:#2AF598;border-radius:10px;font-weight:800;cursor:pointer">Retake This Quiz</button>
+      <button onclick="newQuiz()" style="flex:1;height:44px;background:#2AF598;border:none;border-radius:10px;font-weight:800;cursor:pointer">New Random Quiz</button>
+    </div>`;
+  loadHist();
+}
+function newQuiz(){ document.getElementById('quizCard').style.display='none'; document.getElementById('setupCard').scrollIntoView({behavior:'smooth'}); document.getElementById('goBtn').click(); }
+document.getElementById('clearBtn').onclick=async()=>{ if(!confirm('Clear ALL quiz results?')) return; await fetch('/api/quiz/clear',{method:'POST'}); loadHist(); };
+document.addEventListener('keydown',e=>{ if(!Q||document.getElementById('quizCard').style.display==='none') return; if(/INPUT|TEXTAREA|SELECT/.test((e.target||{}).tagName)) return;
+  const k=e.key.toLowerCase(); if(['a','b','c','d'].includes(k)&&!locked&&document.querySelector('#quiz button[data-l]')) pick(k);
+  else if(e.key==='Enter'){ const b=document.querySelector('#fb button'); if(b) b.click(); } });
+
+</script>
+</body>
+</html>

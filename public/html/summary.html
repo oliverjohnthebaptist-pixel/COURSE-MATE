@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Summary - Module by Module</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<meta property="og:image" content="logo.png">
+<meta property="og:title" content="GradePadi - NOUN GPA Calculator">
+<script src="/js/auth-fetch.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#060D09;color:#E8F5EC;font-family:'Inter',sans-serif;min-height:100vh}
+.topbar{height:92px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:#080E0A;border-bottom:1px solid #1C3324;position:sticky;top:0;z-index:100;gap:12px}
+.brand{display:flex;align-items:center;gap:14px;text-decoration:none}
+.logo-img{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #2AF598;background:#0F2318;display:block}
+.logo-fallback{width:80px;height:80px;border-radius:50%;background:#0F2318;border:3px solid #2AF598;display:none;place-items:center;font-weight:900;color:#2AF598;font-size:32px}
+.brand-text h1{font-size:18px;color:white;line-height:1}
+.brand-text p{font-size:9px;color:#2AF598;letter-spacing:1px;font-weight:700;margin-top:4px}
+.profile{position:relative;display:flex;align-items:center;gap:10px;flex-shrink:0;cursor:pointer}
+.profile-text{text-align:right;line-height:1.1}
+.profile-text b{display:block;font-size:12px;color:white}
+.profile-text span{font-size:10px;color:#2AF598}
+.avatar{width:42px;height:42px;border-radius:50%;background:#1A2F1E;border:2px solid #2AF598;display:grid;place-items:center;color:#2AF598;font-weight:800;font-size:13px;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.dropdown{position:absolute;top:56px;right:0;width:260px;background:#0F1E15;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:12px;box-shadow:0 20px 40px rgba(0,0,0,0.5);display:none;z-index:200}
+.dropdown.show{display:block}
+.drop-header{display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:8px}
+.drop-avatar{width:48px;height:48px;border-radius:50%;background:#2AF598;color:#08130E;display:grid;place-items:center;font-weight:800;overflow:hidden}
+.drop-item{padding:10px 12px;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:13px;color:#9AB0A2;cursor:pointer}
+.nav-wrap{background:#080E0A;padding:10px 18px;border-bottom:1px solid #1C3324;overflow-x:auto;position:sticky;top:92px;z-index:90}
+.nav{display:flex;gap:8px;max-width:1100px;margin:0 auto}
+.nav a{padding:8px 14px;border-radius:20px;background:#111F18;border:1px solid #1C3324;color:#8BA89A;text-decoration:none;font-size:12px;white-space:nowrap;font-weight:600;cursor:pointer}
+.nav a.active{background:#2AF598;color:#05210F;border-color:#2AF598;font-weight:800}
+.wrap{padding:18px;max-width:1100px;margin:0 auto}
+.card{background:#101E14;border:1px solid #1C3324;border-radius:16px;padding:18px;margin-bottom:16px}
+.label{font-size:10px;color:#7A9A85;font-weight:700;letter-spacing:0.5px}
+.badge-acc{background:#2AF598;color:#05210F;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;display:inline-block;margin-left:8px}
+#status{color:#2AF598;font-size:11px;margin-top:8px;font-weight:700}
+.download-one{width:100%;height:56px;background:linear-gradient(90deg,#2AF598,#1ec87e);border:none;border-radius:14px;font-weight:900;font-size:14px;cursor:pointer;color:#05210F;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 8px 20px rgba(42,245,152,0.3)}
+.download-one:hover{transform:translateY(-2px)}
+.tab-btn{flex:1;border:none;cursor:pointer;padding:9px 10px;border-radius:20px;font-size:12px;font-weight:700;background:transparent;color:#7A9A85}
+.tab-btn.active{background:#1C3324;color:#E8F5EC}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/dashboard.html" class="brand">
+    <img class="logo-img" id="logoImg" src="/logo.png?v=2" alt="CourseMate" onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='grid'">
+    <div id="logoFallback" class="logo-fallback">C</div>
+    <div class="brand-text"><h1>CourseMate</h1><p>NOUN • NATIONAL OPEN UNIVERSITY</p></div>
+  </a>
+  <div class="profile" id="avatarWrap">
+    <div class="profile-text"><b id="profName">Oliver</b><span id="profPlan">Student</span></div>
+    <div class="avatar" id="profAvatar"><span id="avatarLetter">O</span></div>
+    <div class="dropdown" id="avatarDropdown">
+      <div class="drop-header"><div class="drop-avatar" id="dropAvatar"><span id="dropAvatarLetter">O</span></div><div><div style="font-weight:700;font-size:13px" id="dropName">Oliver John</div><div style="font-size:11px;color:#8BA89A" id="dropEmail">oliver@email.com</div></div></div>
+      <div class="drop-item" onclick="location.href='/settings.html'">⚙ Settings</div>
+      <div class="drop-item" style="color:#ff6b6b" onclick="handleLogout()">🚪 Logout</div>
+    </div>
+  </div>
+</div>
+
+<div class="nav-wrap">
+  <div class="nav">
+    <a href="/dashboard.html">📊 Dashboard</a>
+    <a href="/materials.html">📚 Materials</a>
+    <a href="/tma.html">✅ TMA Solver</a>
+    <a href="/summary.html" class="active">📄 Summary</a>
+    <a href="/quiz.html">🎯 Quiz</a>
+    <a href="/chat.html">💬 AI Tutor</a>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="card" style="background:linear-gradient(135deg,#0E2A1C,#101E14);border:1px solid #2AF59855">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div>
+        <h2 style="font-size:15px">📖 Module-by-Module Summary <span class="badge-acc">Plain Language</span></h2>
+        <div style="font-size:11px;color:#7A9A85;margin-top:4px">Every module summarised, and every unit in it explained in simple English with page references</div>
+      </div>
+      <div style="display:flex;gap:4px;background:#08130D;border-radius:22px;padding:3px">
+        <button class="tab-btn active" id="tabPlain" onclick="setTab('plain')">Plain Language</button>
+        <button class="tab-btn" id="tabPreview" onclick="setTab('preview')">PDF Preview</button>
+        <button class="tab-btn" id="tabExample" onclick="setTab('example')">Example</button>
+      </div>
+    </div>
+
+    <div id="plainPanel" style="margin-top:16px">
+      <div style="background:#0B1A12;border:1px solid #1C3324;border-radius:12px;padding:14px">
+        <div style="font-size:12px;font-weight:800;color:#2AF598;margin-bottom:8px">HOW THIS SUMMARY WRITES:</div>
+        <div style="font-size:12px;color:#C5D9CC;line-height:1.9">
+          <b style="color:white">Tone:</b> Simple, clear English that a student can follow without re-reading the textbook<br>
+          <b style="color:white">Length:</b> One overview per module, then a full explanation of every unit (about 300 words each)<br>
+          <b style="color:white">Structure:</b> <b style="color:#2AF598">Module overview</b>, then each unit: explanation, sections, key points and definitions<br>
+          <b style="color:white">Examples:</b> Examples taken from your own PDF, with the page number beside each point<br>
+          <b style="color:white">ONE FILE:</b> All modules in one downloadable PDF with the CourseMate letterhead
+        </div>
+      </div>
+    </div>
+
+    <div id="previewPanel" style="display:none;margin-top:16px">
+      <div style="border:1px solid #1C3324;border-radius:12px;overflow:hidden;background:white">
+        <div style="height:28px;background:#0B7A42;display:flex;align-items:center;padding:0 12px;gap:8px">
+          <div style="width:18px;height:18px;border-radius:50%;background:white;display:grid;place-items:center;font-weight:900;color:#0B7A42;font-size:10px">C</div>
+          <div style="color:white;font-weight:800;font-size:9px">CourseMate - CIT301 COMPREHENSIVE SUMMARY - PLAIN LANGUAGE</div>
+        </div>
+        <div style="height:2px;background:#c82024"></div>
+        <div style="padding:14px;color:#000">
+          <div style="font-size:15px;font-weight:900;color:#0B7A42">Module 1: Introduction to CIT301</div>
+          <div style="font-size:10px;color:#333;margin-top:8px;line-height:1.7">
+            Alright, so let's talk about CIT301. Basically, this course is about computers and how they work — but not in that boring textbook way. Think about it like this: you know how you use your phone every day? You chat on WhatsApp, you check your bank app, you watch TikTok — all of that is possible because of what you'll learn in CIT301.<br><br>
+            In this module, we're going to break down what a computer really is. Forget the big definition in the PDF that says "an electronic device that processes data" — let's keep it simple. A computer is just a tool that takes what you give it, works on it, and gives you something useful back. Like when you type a message and it sends it. That's it.
+          </div>
+          <div style="font-size:11px;font-weight:800;margin-top:12px;color:#222">• What is Computer?</div>
+          <div style="font-size:9px;color:#444;margin-top:4px;line-height:1.6">So what exactly is a computer? In plain language, it's any device that can store your stuff, process it, and give you results. Your phone is a computer. Your laptop is a computer. Even that POS machine where you withdraw money — that's a computer too. The key thing is: you give it input (like typing), it processes (thinks), and gives output (shows result).</div>
+        </div>
+        <div style="height:12px;background:#080E0A;display:flex;align-items:center;justify-content:center;color:#777;font-size:5px">CourseMate | CIT301 Comprehensive | Page 1 | ONE FILE - Plain Language for Young Adults | NOUN</div>
+      </div>
+    </div>
+
+    <div id="examplePanel" style="display:none;margin-top:16px">
+      <div style="background:#0B1A12;border:1px solid #1C3324;border-radius:12px;padding:14px">
+        <div style="font-size:12px;font-weight:800;color:#2AF598">Example: CIT301 MOD 1 UNIT 1 in plain language for young adults:</div>
+        <div style="font-size:12px;color:#C5D9CC;margin-top:10px;line-height:1.9">
+          <b style="color:#2AF598;font-size:14px">Module 1: Introduction to Computers</b><br><br>
+          Okay, so let's be real. You've been using computers since you were small, but do you actually know what makes a computer a computer? In this module, we'll break it down without all that heavy textbook grammar.<br><br>
+          A computer, in the simplest way, is like your personal assistant. You tell it "save this photo" and it saves. You tell it "calculate my GP" and it calculates. It's not magic — it's just a machine that follows instructions very fast.<br><br>
+          <b>• What is a Computer?</b><br>
+          Forget the long definition from page 2 of your PDF. Let's keep it plain: A computer is an electronic device that takes information (like your name, your photos, your assignment), works on it, and gives you back something useful (like a printed document or a sent email). Your phone does this, your laptop does this. Even the ATM does this. That's a computer.<br><br>
+          <b>• Types of Computer</b><br>
+          You know how we have different types of phones — iPhone, Samsung, small, big? Computers are similar. We have supercomputers (very powerful, used by big companies), mainframe (used in banks), personal computers (your laptop), and microcomputers (your phone). But honestly, for your exam, just remember: they differ by size, power, and where they are used. Your phone is actually more powerful than the computers that sent people to the moon in 1969. Crazy, right?
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <label class="label">SELECT COURSE MATERIAL (FROM YOUR UPLOADS)</label>
+    <select id="matSelect" style="width:100%;padding:12px;border-radius:10px;background:#08130D;color:white;border:1px solid #1C3324;margin-top:6px"></select>
+    <button id="goBtn" style="width:100%;margin-top:12px;height:48px;background:#2AF598;border:none;border-radius:12px;font-weight:800;cursor:pointer">📖 Summarise Every Module & Explain Every Unit</button>
+    <div id="status" style="color:#2AF598"></div>
+
+    <div id="oneFileArea" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid #1C3324">
+      <div style="font-size:12px;color:#7A9A85;margin-bottom:10px">✅ Summary ready — <b style="color:white" id="fileInfo">0 modules</b></div>
+      <button class="download-one" id="downloadOneBtn" onclick="downloadComprehensivePDF()">
+        ⬇ Download Summary PDF (CourseMate Letterhead)
+      </button>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button style="flex:1;padding:10px;border-radius:10px;background:#111F18;border:1px solid #1C3324;color:#2AF598;font-size:11px;font-weight:700;cursor:pointer" onclick="downloadComprehensiveTXT()">⬇ ONE .TXT</button>
+        <button style="flex:1;padding:10px;border-radius:10px;background:#111F18;border:1px solid #1C3324;color:#8BA89A;font-size:11px;cursor:pointer" onclick="copyComprehensive()">📋 Copy</button>
+      </div>
+      <div style="font-size:10px;color:#5a7a66;margin-top:8px;text-align:center">PDF: CourseMate letterhead • one section per module • every unit explained with page references</div>
+    </div>
+  </div>
+
+  <div class="card" id="treeCard" style="display:none">
+    <h2 style="font-size:14px;margin-bottom:12px" id="treeHeader">📖 Modules & Units - tap a unit to read its explanation</h2>
+    <div id="tree"></div>
+  </div>
+</div>
+
+<script src="../js/cm.js"></script>
+<script src="/js/letterhead.js"></script>
+<script>
+const supabaseClient = window.supabase.createClient('https://lohjifbvrbnqxamroxtp.supabase.co','sb_publishable_-3UptBHer0fKyelp_a3z-g_jfflZF0l');
+let currentUser=null;
+const sel=document.getElementById('matSelect');
+const E=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let outline=null, saved={}, modInfo={}, matTitle='', matCode='';
+const codeOf=t=>{ const cm=String(t||'').match(/[A-Za-z]{3}\s?-?\d{3}/); return (cm?cm[0]:String(t||'').split(/[\s._-]/)[0]).toUpperCase().replace(/[^A-Z0-9]/g,'')||'COURSE'; };
+let _rt=null; const renderSoon=()=>{ if(_rt) return; _rt=setTimeout(()=>{ _rt=null; renderTree(); },400); };
+
+function setTab(tab){
+  document.getElementById('tabPlain').classList.toggle('active', tab==='plain');
+  document.getElementById('tabPreview').classList.toggle('active', tab==='preview');
+  document.getElementById('tabExample').classList.toggle('active', tab==='example');
+  document.getElementById('plainPanel').style.display = tab==='plain'?'block':'none';
+  document.getElementById('previewPanel').style.display = tab==='preview'?'block':'none';
+  document.getElementById('examplePanel').style.display = tab==='example'?'block':'none';
+}
+window.setTab=setTab;
+
+async function initUser(){
+  try{
+    const {data:{user}} = await supabaseClient.auth.getUser();
+    if(user){
+      currentUser=user;
+      const {data:profile} = await supabaseClient.from('profiles').select('*').eq('id',user.id).single();
+      const fullName = profile?.full_name||user.email;
+      document.getElementById('profName').textContent=fullName.split(' ')[0];
+      document.getElementById('avatarLetter').textContent=fullName[0].toUpperCase();
+      document.getElementById('dropName').textContent=fullName;
+      document.getElementById('dropEmail').textContent=profile?.email||user.email;
+    }
+  }catch{}
+  setupAvatar();
+  await loadMats();
+}
+function setupAvatar(){
+  const wrap=document.getElementById('avatarWrap');
+  const avatar=document.getElementById('profAvatar');
+  const dd=document.getElementById('avatarDropdown');
+  avatar.addEventListener('click',(e)=>{ e.stopPropagation(); dd.classList.toggle('show'); });
+  document.addEventListener('click',(e)=>{ if(!wrap.contains(e.target)) dd.classList.remove('show'); });
+  document.querySelectorAll('.nav a').forEach(a=>{
+    a.addEventListener('click', (e)=>{ e.preventDefault(); location.href = a.getAttribute('href'); });
+  });
+}
+async function handleLogout(){ await supabaseClient.auth.signOut(); localStorage.clear(); location.href='../../index.html'; }
+window.handleLogout=handleLogout;
+
+async function loadMats(){
+  try{
+    const res = await fetch('/api/materials');
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||`Could not load materials (HTTP ${res.status}).`);
+    const mats = data.materials||[];
+    const selEl = document.getElementById('matSelect');
+    if(!mats.length){ selEl.innerHTML='<option value="">No material</option>'; document.getElementById('status').textContent='No uploaded course materials found. Upload a searchable PDF from Materials first.'; return; }
+    selEl.innerHTML = mats.map(m=>`<option value="${m.id}">${m.title} - ${m.page_count||0} pages</option>`).join('');
+    const params = new URLSearchParams(window.location.search);
+    const matFromDash = params.get('mat') || localStorage.getItem('selected_material');
+    if(matFromDash && mats.find(x=>x.id===matFromDash)) selEl.value = matFromDash;
+    await loadOutline();
+    selEl.onchange = () => { localStorage.setItem('selected_material', selEl.value); loadOutline(); };
+  }catch(e){ document.getElementById('status').textContent='Could not load your materials: '+e.message; }
+}
+
+async function loadOutline(){
+  if(!sel.value) return;
+  matTitle=(sel.options[sel.selectedIndex]?.text||'').replace(/\s+-\s+\d+\s+pages?$/i,'');
+  matCode=codeOf(matTitle);
+  const st=document.getElementById('status'); st.textContent='Reading the modules and units in your PDF...';
+  try{
+    const response=await fetch('/api/outline/'+encodeURIComponent(sel.value));
+    const o=await response.json();
+    if(!response.ok) throw new Error(o.error||`Could not read this PDF (HTTP ${response.status}).`);
+    if(!o||o.error) throw new Error((o&&o.error)||'Could not read this PDF');
+    outline=o;
+    try{ const d=await fetch('/api/summary/'+sel.value).then(r=>r.json()); saved=d.units||{}; modInfo=d.modules||{}; }catch{ saved={}; modInfo={}; }
+    const nU=o.modules.reduce((a,m)=>a+m.units.length,0);
+    const doneUnits=o.modules.reduce((a,m)=>a+m.units.filter(u=>{const s=saved[`${m.n}.${u.n}`];return !!(s&&(s.explanation||s.summary));}).length,0);
+    const goBtn=document.getElementById('goBtn');
+    goBtn.disabled=nU>0&&doneUnits>=nU;
+    goBtn.textContent=doneUnits>=nU&&nU>0?'✅ Summary already complete — read the units below':doneUnits?`📖 Continue summary (${nU-doneUnits} units remaining)`:'📖 Summarise Every Module & Explain Every Unit';
+    st.textContent=doneUnits>=nU&&nU>0
+      ? `Your course is already summarised: ${doneUnits} of ${nU} units are ready. Open a unit below to read it or download the summary.`
+      : `Found ${o.modules.length} ${o.structured?'modules':'parts'} and ${nU} units${doneUnits?`; ${doneUnits} already summarised`:''}. Click the button to explain the remaining units.`;
+    document.getElementById('treeCard').style.display='block';
+    renderTree();
+  }catch(e){ st.textContent='Error: '+e.message; }
+}
+
+function renderTree(){
+  if(!outline) return;
+  const T=document.getElementById('tree');
+  const done=Object.keys(saved).length;
+  document.getElementById('fileInfo').textContent=`${outline.modules.length} modules, ${done} units explained`;
+  const P=t=>String(t||'').split(/\n{2,}/).filter(Boolean).map(x=>`<p style="margin:0 0 8px">${E(x)}</p>`).join('');
+  let openFirstUnit=true;
+  T.innerHTML=outline.modules.map(m=>{
+    const mi=modInfo[m.n]||{};
+    const units=m.units.map(u=>{
+      const key=`${m.n}.${u.n}`, s=saved[key], isDone=!!s;
+      const body=isDone?`
+        ${s.explanation?`<div style="font-size:12.5px;color:#D5E6DB;line-height:1.7;margin-top:8px">${P(s.explanation)}</div>`:(s.summary?`<div style="font-size:12.5px;color:#D5E6DB;line-height:1.7;margin-top:8px">${P(s.summary)}</div>`:'')}
+        ${(s.sections||[]).filter(x=>x.summary).map(x=>`<div style="margin-top:8px"><div style="font-size:12px;font-weight:700;color:#2AF598">${E(x.num?x.num+' ':'')}${E(x.title)}${x.page?` <span style="color:#7A9A85;font-weight:400">(P.${x.page})</span>`:''}</div><div style="font-size:12px;color:#C5D9CC;line-height:1.65">${E(x.summary)}</div></div>`).join('')}
+        ${(s.key_points||[]).length?`<div style="margin-top:10px;font-size:11px;font-weight:800;color:#2AF598">KEY POINTS</div>`+s.key_points.map(k=>`<div style="font-size:12px;color:#C5D9CC;line-height:1.6;margin-top:3px">• ${E(k.point)}${k.explanation?' - '+E(k.explanation):''}${k.page?` <span style="color:#7A9A85">(P.${k.page})</span>`:''}</div>`).join(''):''}
+        ${(s.definitions||[]).length?`<div style="margin-top:10px;font-size:11px;font-weight:800;color:#2AF598">DEFINITIONS</div>`+s.definitions.map(d=>`<div style="font-size:12px;color:#C5D9CC;line-height:1.6;margin-top:3px"><b style="color:#fff">${E(d.term)}</b>: ${E(d.meaning)}</div>`).join(''):''}`:'';
+      const open=openFirstUnit?' open':'';
+      openFirstUnit=false;
+      return `<details${open} style="padding:8px 0;border-top:1px solid #1C3324">
+        <summary style="cursor:pointer;font-size:13px;font-weight:600;color:${isDone?'#E8F5EC':'#5a7a66'}">${matCode} MOD ${m.n} UNIT ${u.n}: ${E(u.title)} ${isDone?'✓':''}</summary>
+        <div style="font-size:11px;color:#7A9A85;margin-top:4px">Pages ${u.start}-${u.end} • ${isDone?'explained':'not summarised yet'}</div>${body}</details>`;
+    }).join('');
+    return `<div style="background:#0E2016;border:1px solid #1C3324;border-radius:14px;padding:14px;margin-bottom:12px">
+      <div style="font-weight:800;font-size:15px;color:#2AF598">Module ${m.n}: ${E(mi.title||m.title)}</div>
+      ${mi.overview?`<div style="font-size:12.5px;color:#D5E6DB;line-height:1.7;margin-top:8px">${E(mi.overview)}</div>`:''}
+      <div style="margin-top:10px">${units}</div>
+    </div>`;
+  }).join('');
+  if(done>0) document.getElementById('oneFileArea').style.display='block';
+}
+
+async function run(regenerate){
+  if(!sel.value||!outline) return;
+  const gb=document.getElementById('goBtn'), st=document.getElementById('status'); const label=gb.textContent;
+  gb.disabled=true; gb.textContent='📖 Reading your PDF and explaining every unit... (this takes a few minutes)';
+  const started=Date.now();
+  let phase='Starting summary — loading your PDF and preparing its modules and units.';
+  const updateStatus=()=>{ const elapsed=Math.floor((Date.now()-started)/1000); const mins=Math.floor(elapsed/60), secs=String(elapsed%60).padStart(2,'0'); st.textContent=`${phase} (${mins}:${secs} elapsed)`; };
+  updateStatus();
+  const timer=setInterval(updateStatus,5000);
+  try{
+    const myId=sel.value;
+    const done=await CM.stream('/api/summary',{material_id:myId,regenerate:!!regenerate},ev=>{
+      if(ev.type==='step'){ phase=ev.live||ev.desc||ev.title||'Working on your summary'; updateStatus(); }
+      else if(ev.type==='progress'){ phase=`Summarised ${ev.done} of ${ev.total} units${ev.courses?.[0]?.title?` for ${ev.courses[0].title}`:''}.`; updateStatus(); }
+      else if(ev.type==='unit' && ev.material_id===sel.value){ saved[ev.key]=ev.unit; renderSoon(); }
+      else if(ev.type==='module' && ev.material_id===sel.value){ modInfo[ev.n]=ev.module; renderSoon(); }
+    });
+    saved=done.units||{}; modInfo=done.modules||{};
+    const c0=(done.courses||[])[0]||{}; const failed=(c0.failed||[]).length;
+    const totalUnits=outline.modules.reduce((a,m)=>a+m.units.length,0);
+    const doneUnits=outline.modules.reduce((a,m)=>a+m.units.filter(u=>{const s=saved[`${m.n}.${u.n}`];return !!(s&&(s.explanation||s.summary));}).length,0);
+    st.textContent=failed?`⚠ ${failed} unit(s) could not be finished (${((c0.reasons||[])[0]||{}).reason||'the AI was busy'}). Click the button again to retry unfinished units.`:`✅ Done: ${doneUnits} of ${totalUnits} units explained across ${outline.modules.length} modules. Open a unit below to read it or download the PDF.`;
+    gb.disabled=totalUnits>0&&doneUnits>=totalUnits;
+    gb.textContent=gb.disabled?'✅ Summary complete — read the units below':failed?`↻ Retry ${failed} unfinished unit${failed===1?'':'s'}`:`📖 Continue summary (${Math.max(0,totalUnits-doneUnits)} units remaining)`;
+    renderTree();
+  }catch(e){ st.textContent='❌ Summary stopped: '+e.message; gb.disabled=false; gb.textContent=label; }
+  finally{ clearInterval(timer); }
+}
+document.getElementById('goBtn').onclick=()=>run(false);
+
+async function pdfLogo(){
+  for(const src of ['/logo.png?v=2','../../logo.png','/public/logo.png']){
+    try{
+      const img=await new Promise((res,rej)=>{const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src;});
+      const S=320, c=document.createElement('canvas'); c.width=c.height=S; const x=c.getContext('2d');
+      x.beginPath(); x.arc(S/2,S/2,S/2,0,Math.PI*2); x.closePath(); x.clip(); x.drawImage(img,0,0,S,S);
+      return c.toDataURL('image/png');
+    }catch{}
+  }
+  return null;
+}
+
+async function downloadComprehensivePDF(){
+  const btn=document.getElementById('downloadOneBtn'); const label=btn.innerHTML;
+  if(!outline||!Object.keys(saved).length){ return alert('Create the summary first.'); }
+  btn.disabled=true; btn.textContent='Building your PDF...';
+  try{
+    const n=await CMPDF.summary({code:matCode,title:matTitle,modules:outline.modules,saved,modInfo});
+    document.getElementById('status').textContent=`✅ PDF downloaded: ${n} pages with the CourseMate letterhead.`;
+  }catch(err){ console.error(err); alert('PDF error: '+err.message); }
+  btn.innerHTML=label; btn.disabled=false;
+}
+
+function buildComprehensiveText(){
+  if(!outline||!Object.keys(saved).length) return '';
+  const L=[`${matCode} - ${matTitle} - SUMMARY BY MODULE`,`Generated by CourseMate - ${new Date().toLocaleDateString()}`,'='.repeat(70),''];
+  outline.modules.forEach(m=>{
+    const mi=modInfo[m.n]||{};
+    L.push(`MODULE ${m.n}: ${(mi.title||m.title||'').toUpperCase()}`,'='.repeat(70),'');
+    if(mi.overview) L.push(mi.overview,'');
+    m.units.forEach(u=>{
+      const s=saved[`${m.n}.${u.n}`]; if(!s) return;
+      L.push(`${matCode} MOD ${m.n} UNIT ${u.n}: ${(s.title||u.title).toUpperCase()}`,`Pages ${s.pages||u.start+'-'+u.end}`,'-'.repeat(60),'',s.explanation||s.summary||'','');
+      (s.sections||[]).filter(x=>x.summary).forEach(x=>L.push(`${x.num?x.num+' ':''}${x.title}${x.page?' (P.'+x.page+')':''}: ${x.summary}`));
+      if((s.key_points||[]).length){ L.push('','Key points:'); s.key_points.forEach(k=>L.push(`- ${k.point}${k.explanation?' - '+k.explanation:''}${k.page?' (P.'+k.page+')':''}`)); }
+      if((s.definitions||[]).length){ L.push('','Definitions:'); s.definitions.forEach(d=>L.push(`- ${d.term}: ${d.meaning}`)); }
+      L.push('','');
+    });
+  });
+  return L.join('\n');
+}
+
+function downloadComprehensiveTXT(){
+  const text=buildComprehensiveText(); if(!text) return alert('Create the summary first.');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));
+  a.download=`${matCode}_${matTitle.replace(/[^\w]+/g,'_')}_Summary.txt`; a.click();
+}
+function copyComprehensive(){
+  const text=buildComprehensiveText(); if(!text) return alert('Create the summary first.');
+  navigator.clipboard.writeText(text).then(()=>{ document.getElementById('status').textContent='✅ Copied'; });
+}
+
+window.downloadComprehensivePDF = downloadComprehensivePDF;
+window.downloadComprehensiveTXT = downloadComprehensiveTXT;
+window.copyComprehensive = copyComprehensive;
+
+initUser();
+</script>
+</body>
+</html>

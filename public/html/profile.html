@@ -1,0 +1,53 @@
+<!-- Replace your complete-profile.html with this CLEAN version -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Complete Profile - CourseMate</title>
+<style>
+body{background:#0A1A11;color:#E8EDE7;font-family:Inter;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px}
+.card{width:100%;max-width:460px;background:#14281D;border:2px solid #2AF598;border-radius:24px;padding:32px}
+h1{color:#2AF598;font-size:22px}
+input,select{width:100%;background:#0A1A11;border:1px solid #1E3A2A;color:#fff;padding:12px;border-radius:12px;margin-bottom:12px}
+button{width:100%;background:#2AF598;color:#000;border:none;padding:14px;border-radius:14px;font-weight:800;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>Complete Your Profile</h1>
+<form id="f">
+<input id="matric" placeholder="Matric No NOU123456789" required>
+<select id="department" required><option value="">Department</option><option>Computer Science</option><option>IT</option><option>Cybersecurity</option><option>Software Eng</option><option>Other</option></select>
+<select id="level" required><option value="">Level</option><option>100 Level</option><option>200 Level</option><option>300 Level</option><option>400 Level</option></select>
+<input id="fullName" placeholder="Full Name e.g. Oladeji">
+<button type="submit" id="btn">Save & Go to Dashboard</button>
+</form>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SB_URL="https://lohjifbvrbnqxamroxtp.supabase.co";
+const SB_KEY="sb_publishable_-3UptBHer0fKyelp_a3z-g_jfflZF0l";
+const sb=supabase.createClient(SB_URL,SB_KEY);
+async function init(){
+ const {data:{session}}=await sb.auth.getSession();
+ if(!session) return location.href='/login.html';
+ const {data}=await sb.from('profiles').select('*').eq('id',session.user.id).single();
+ if(data){
+   matric.value=data.matric||''; department.value=data.department||''; level.value=data.level||''; fullName.value=data.full_name||'';
+ }
+}
+init();
+f.addEventListener('submit',async(e)=>{
+ e.preventDefault(); btn.textContent='Saving...';
+ const {data:{session}}=await sb.auth.getSession();
+ await sb.from('profiles').upsert({
+   id:session.user.id, email:session.user.email,
+   matric:matric.value, department:department.value, level:level.value,
+   full_name:fullName.value || session.user.email.split('@')[0]
+ });
+ location.href='/dashboard.html';
+});
+</script>
+</body>
+</html>

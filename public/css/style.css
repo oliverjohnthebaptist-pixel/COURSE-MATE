@@ -1,0 +1,55 @@
+/* ===== COMPLETE DARK MODE - FIXES YOUR SCREENSHOT ===== */
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#080a0f;color:white;font-family:Inter,sans-serif}
+.container{max-width:1000px;margin:0 auto;padding:16px}
+
+/* HEADER */
+.top-header{display:flex;justify-content:space-between;align-items:center;background:#12141f;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:14px 18px}
+.logo-area{display:flex;gap:10px;align-items:center}
+.logo-icon{width:36px;height:36px;background:#0e7a3c;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.logo-text{font-weight:700;font-size:15px}.logo-sub{font-size:9px;color:#2ecc71;letter-spacing:1px;font-weight:700}
+.upload-btn{background:#0e7a3c;border:none;color:white;padding:10px 18px;border-radius:9999px;font-weight:700;font-size:13px;cursor:pointer}
+
+/* TABS */
+.tabs{display:flex;gap:8px;margin:18px 0;flex-wrap:wrap}
+.tab{padding:9px 18px;border-radius:9999px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);font-size:13px;font-weight:600;cursor:pointer}
+.tab.active{background:rgba(255,255,255,0.12);color:white;border-color:rgba(255,255,255,0.2)}
+
+/* BANNER - Your NOUN study companion */
+.banner{background:linear-gradient(135deg,#0e7a3c 0%,#0a5a2c 100%);border-radius:20px;padding:28px;color:white;margin-bottom:18px}
+.banner h1{font-size:28px;font-weight:700;font-family:'Space Grotesk',sans-serif}
+.banner p{font-size:13px;opacity:0.85;margin-top:6px}
+
+/* STATS - 6 Materials 24 Solved AI Active */
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px}
+.stat-card{background:#12141f;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:18px}
+.stat-num{font-size:28px;font-weight:700}
+.stat-label{font-size:13px;color:rgba(255,255,255,0.5);margin-top:2px}
+.green{color:#2ecc71;font-weight:600}
+.stat-small{font-size:12px;color:rgba(255,255,255,0.6);margin-top:4px}
+
+/* ACTIVITY */
+.activity-card{background:#12141f;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:18px}
+.activity-card h3{font-size:15px;margin-bottom:14px}
+.activity-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:13px;color:rgba(255,255,255,0.7)}
+.tag{background:rgba(46,204,113,0.15);color:#2ecc71;padding:4px 10px;border-radius:9999px;font-size:11px;font-weight:600}
+
+/* TMA CARD - AS YOUR SCREENSHOT 16 17 */
+.tma-input-card{background:#12141f;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:18px;margin-bottom:16px}
+.tma-input-card h3{font-size:14px;margin-bottom:12px}
+.tma-input-card select,.tma-input-card textarea{width:100%;background:#000;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;color:white;font-size:13px;margin-bottom:10px}
+.tma-input-card textarea{min-height:120px;resize:vertical}
+#tmaBtn{width:100%;background:#0e7a3c;border:none;color:white;padding:13px;border-radius:9999px;font-weight:700;cursor:pointer}
+
+.tma-card{background:#181b2a;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px;margin-bottom:14px;border-left:3px solid #0e7a3c}
+.q-row{display:flex;gap:12px}
+.q-num{min-width:32px;height:32px;background:#0e7a3c;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.q-text{font-size:14px;font-weight:500;line-height:1.5;flex:1}
+.answer-pill{display:inline-flex;background:rgba(46,204,113,0.15);border:1px solid rgba(46,204,113,0.3);color:#2ecc71;padding:6px 14px;border-radius:9999px;font-size:12px;font-weight:600;margin:12px 0 12px 44px}
+.why{margin-left:44px;font-size:12.5px;line-height:1.6;color:rgba(255,255,255,0.7);margin-bottom:10px}
+.why b{color:white}
+.evidence{margin-left:44px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;font-size:11.5px;color:rgba(255,255,255,0.6);line-height:1.5}
+.evidence b{color:rgba(255,255,255,0.8)}
+.ref{margin-left:44px;margin-top:12px;display:inline-block;background:#000;border:1px solid rgba(255,255,255,0.1);padding:5px 12px;border-radius:9999px;font-size:10px;font-weight:700}
+
+.tab-content{display:none}.tab-content.active{display:block}
