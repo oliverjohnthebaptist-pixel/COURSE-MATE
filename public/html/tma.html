@@ -328,24 +328,29 @@ document.getElementById('solveBtn').onclick=async()=>{
     const fd=new FormData(); fd.append('material_id',id); fd.append('tma_text',text); fd.append('stream','1');
     const r=await fetch('/api/tma/solve',{method:'POST',body:fd});
     if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error||('Server error '+r.status)); }
-    if(!r.body) throw new Error('The server returned an empty response. Please try again.');
-    const reader=r.body.getReader(), dec=new TextDecoder(); let buf='', data=null;
-    const consumeLine=line=>{
-      if(!line.trim()) return;
-      let ev;
-      try{ ev=JSON.parse(line); }catch{ throw new Error('The server returned an invalid answer stream. Please try again.'); }
-      if(ev.type==='error') throw new Error(ev.error||'The solver could not finish.');
-      if(ev.type==='done') data=ev.payload; else handleEvent(ev);
-    };
-    while(true){
-      const {value,done}=await reader.read(); if(done) break;
-      buf+=dec.decode(value,{stream:true});
-      let nl; while((nl=buf.indexOf('\n'))>=0){
-        const line=buf.slice(0,nl); buf=buf.slice(nl+1); consumeLine(line);
+    let data=null;
+    if(r.status===202){
+      const queued=await r.json().catch(()=>({}));
+      if(!queued.job_id) throw new Error('The server accepted the task but did not return its task ID.');
+      data=(await CM.waitJob(queued.job_id,handleEvent)).payload;
+    }else{
+      if(!r.body) throw new Error('The server returned an empty response. Please try again.');
+      const reader=r.body.getReader(), dec=new TextDecoder(); let buf='';
+      const consumeLine=line=>{
+        if(!line.trim()) return;
+        let ev;
+        try{ ev=JSON.parse(line); }catch{ throw new Error('The server returned an invalid answer stream. Please try again.'); }
+        if(ev.type==='error') throw new Error(ev.error||'The solver could not finish.');
+        if(ev.type==='done') data=ev.payload; else handleEvent(ev);
+      };
+      while(true){
+        const {value,done}=await reader.read(); if(done) break;
+        buf+=dec.decode(value,{stream:true});
+        let nl; while((nl=buf.indexOf('\n'))>=0){ const line=buf.slice(0,nl); buf=buf.slice(nl+1); consumeLine(line); }
       }
+      buf+=dec.decode();
+      if(buf.trim()) consumeLine(buf);
     }
-    buf+=dec.decode();
-    if(buf.trim()) consumeLine(buf);
     if(!data) throw new Error('Server stopped before finishing. Try again.');
     allAccumulated = data.all_answers || data.answers;
     currentAnswers = allAccumulated;

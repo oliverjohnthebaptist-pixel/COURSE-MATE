@@ -32,7 +32,14 @@ async function request(url, options = {}) {
 
 function select(table, filters = {}) {
   const params = new URLSearchParams({ select: '*' });
-  Object.entries(filters).forEach(([key, value]) => params.set(key, `eq.${value}`));
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value && typeof value === 'object') {
+      const [operator, operand] = Object.entries(value)[0] || [];
+      if (operator && operand !== undefined) params.set(key, `${operator}.${operand}`);
+    } else {
+      params.set(key, `eq.${value}`);
+    }
+  });
   return request(`/rest/v1/${table}?${params.toString()}`);
 }
 
@@ -47,6 +54,37 @@ function upsert(table, rows, conflict) {
     },
     body: JSON.stringify(rows)
   });
+}
+
+function insert(table, rows) {
+  if (!rows.length) return Promise.resolve([]);
+  return request(`/rest/v1/${table}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Prefer: 'return=representation' },
+    body: JSON.stringify(rows)
+  });
+}
+
+function update(table, values, filters = {}) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => params.set(key, `eq.${value}`));
+  return request(`/rest/v1/${table}?${params.toString()}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Prefer: 'return=representation' },
+    body: JSON.stringify(values)
+  });
+}
+
+function rpc(name, args = {}) {
+  return request(`/rest/v1/rpc/${encodeURIComponent(name)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args)
+  });
+}
+
+async function getAuthUser(userId) {
+  return request(`/auth/v1/admin/users/${encodeURIComponent(userId)}`);
 }
 
 function remove(table, filters = {}) {
@@ -134,4 +172,4 @@ async function removeObject(bucket, objectPath) {
   return text ? JSON.parse(text) : null;
 }
 
-module.exports = { configured, select, upsert, remove, download, upload, createSignedUpload, createSignedDownload, removeObject };
+module.exports = { configured, select, insert, update, rpc, getAuthUser, upsert, remove, download, upload, createSignedUpload, createSignedDownload, removeObject };
