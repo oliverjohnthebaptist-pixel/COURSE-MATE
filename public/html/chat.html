@@ -63,6 +63,8 @@
   </div>
 </div>
 <div class="wrap">
+  <div id="taskShareCard" class="card" style="display:none;background:linear-gradient(135deg,#0E2A1C,#101E14);border:1px solid #2AF59855"></div>
+
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">
       <h2 style="font-size:14px">AI Tutor <span class="badge-acc">Teaches from your PDF</span></h2>
@@ -154,6 +156,13 @@ async function send(label,body){
       paint();
     });
     a.status=''; if(done.topic) lastTopic=done.topic;
+    if(a.content.trim() && window.CourseMateGrowth){
+      window.CourseMateGrowth.recordActivity('AI Tutor');
+      window.CourseMateGrowth.renderTaskShareCard({
+        title:'Study session complete',
+        detail:`I just studied ${lastTopic||sel.options[sel.selectedIndex]?.text||'my course material'} with the CourseMate AI Tutor.`
+      });
+    }
   }catch(e){ a.status=''; a.content=(a.content?a.content+'\n\n':'')+'Error: '+e.message; }
   busy=false; document.getElementById('sendBtn').disabled=false; paint(); save(); inp.focus();
 }
@@ -176,5 +185,6 @@ inp.addEventListener('input',()=>{ inp.style.height='auto'; inp.style.height=Mat
 document.getElementById('clearBtn').onclick=()=>{ if(!chat.length||!confirm('Clear this conversation?')) return; chat=[]; pending=null; lastTopic=''; localStorage.removeItem(key()); paint(); };
 
 </script>
+<script src="/js/growth.js?v=2"></script>
 </body>
 </html>

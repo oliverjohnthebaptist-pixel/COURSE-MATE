@@ -70,6 +70,9 @@ Use Netlify for the static website and Render for the API:
    for the start command. Select Node 18 or newer.
 2. Set these Render environment variables: `NODE_ENV=production`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
    `SUPABASE_SERVICE_KEY`, `GROQ_API_KEY`, `APP_URL` (the final Netlify HTTPS site URL), and `ADMIN_EMAILS`.
+   To deliver feedback by email, also set `RESEND_API_KEY` and `RESEND_FROM_EMAIL` to a verified Resend sender.
+   Feedback is sent to every address in `ADMIN_EMAILS`; if that list is empty, it goes to
+   `oliverjohnthebaptist@gmail.com`.
    Finish the Supabase data import and test the service at `/api/health?deep=1` before launch. Do not upload `.env`
    to Render or GitHub.
 3. In Netlify, select the repository and set **Base directory** to `coursemate` (or the directory containing this

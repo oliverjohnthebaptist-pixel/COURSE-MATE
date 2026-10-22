@@ -90,6 +90,7 @@ body{background:#060D09;color:#E8F5EC;font-family:'Inter',sans-serif;min-height:
       <div class="drop-header"><div class="drop-avatar" id="dropAvatar"><span id="dropAvatarLetter">O</span></div><div><div style="font-weight:700;font-size:13px" id="dropName">Oliver John</div><div style="font-size:11px;color:#8BA89A" id="dropEmail">oliver@email.com</div><div style="font-size:10px;color:#2AF598;margin-top:2px" id="dropPlanBadge">Free • 0/3 PDFs</div></div></div>
       <div class="drop-item" onclick="location.href='settings.html'"><span>👤</span> My Profile</div>
       <div class="drop-item" onclick="location.href='settings.html'"><span>⚙</span> Settings</div>
+      <div class="drop-item" data-open-feedback><span>💬</span> Feedback</div>
       <div class="drop-item" onclick="location.href='../../index.html#pricing'"><span>💳</span> Billing - Starter 7 PDFs ₦4,500</div>
       <div class="drop-item" onclick="location.href='dashboard.html'"><span>📊</span> Dashboard</div>
       <div class="drop-divider"></div>
@@ -124,6 +125,8 @@ body{background:#060D09;color:#E8F5EC;font-family:'Inter',sans-serif;min-height:
     <button class="upload-btn" id="chooseBtn">+ Choose PDF</button>
     <div id="upStatus"></div>
   </div>
+
+  <div id="taskShareCard" class="card" style="display:none;background:linear-gradient(135deg,#0E2A1C,#101E14);border:1px solid #2AF59855;margin-top:16px"></div>
 
   <div class="toolbar">
     <div class="search-box"><span>🔍</span><input id="searchInput" placeholder="Search your safe materials... e.g GST102, CIT211"></div>
@@ -268,6 +271,12 @@ async function uploadFile(file){
     upStatus.textContent=data.material?.scanned
       ? `⚠ ${data.title||file.name} saved, but appears scanned/image-only. OCR is not available; searchable text is needed.`
       : `✅ ${data.title||file.name} saved safely forever!`; fileInput.value=''; await loadMaterials();
+    if(window.CourseMateGrowth){
+      window.CourseMateGrowth.renderTaskShareCard({
+        title:'Course material uploaded',
+        detail:`I uploaded ${data.title||file.name} to CourseMate to get ready for studying.`
+      });
+    }
     setTimeout(()=>upStatus.textContent='',4000);
   }catch(err){ upStatus.textContent=`❌ ${err.message}`; }finally{ chooseBtn.disabled=false; }
 }
@@ -279,5 +288,6 @@ function useForSummary(id){ localStorage.setItem('selected_material',id); locati
 console.log('UPLOAD FIX APPLIED');
 init();
 </script>
+<script src="/js/growth.js?v=2"></script>
 </body>
 </html>

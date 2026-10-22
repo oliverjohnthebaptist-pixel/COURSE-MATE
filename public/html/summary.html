@@ -60,6 +60,7 @@ body{background:#060D09;color:#E8F5EC;font-family:'Inter',sans-serif;min-height:
     <div class="dropdown" id="avatarDropdown">
       <div class="drop-header"><div class="drop-avatar" id="dropAvatar"><span id="dropAvatarLetter">O</span></div><div><div style="font-weight:700;font-size:13px" id="dropName">Oliver John</div><div style="font-size:11px;color:#8BA89A" id="dropEmail">oliver@email.com</div></div></div>
       <div class="drop-item" onclick="location.href='/settings.html'">⚙ Settings</div>
+      <div class="drop-item" data-open-feedback><span>💬</span> Feedback</div>
       <div class="drop-item" style="color:#ff6b6b" onclick="handleLogout()">🚪 Logout</div>
     </div>
   </div>
@@ -77,6 +78,8 @@ body{background:#060D09;color:#E8F5EC;font-family:'Inter',sans-serif;min-height:
 </div>
 
 <div class="wrap">
+
+  <div id="taskShareCard" class="card" style="display:none;background:linear-gradient(135deg,#0E2A1C,#101E14);border:1px solid #2AF59855"></div>
 
   <div class="card" style="background:linear-gradient(135deg,#0E2A1C,#101E14);border:1px solid #2AF59855">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
@@ -312,6 +315,13 @@ async function run(regenerate){
     st.textContent=failed?`⚠ ${failed} unit(s) could not be finished (${((c0.reasons||[])[0]||{}).reason||'the AI was busy'}). Click the button again to retry unfinished units.`:`✅ Done: ${doneUnits} of ${totalUnits} units explained across ${outline.modules.length} modules. Open a unit below to read it or download the PDF.`;
     gb.disabled=totalUnits>0&&doneUnits>=totalUnits;
     gb.textContent=gb.disabled?'✅ Summary complete — read the units below':failed?`↻ Retry ${failed} unfinished unit${failed===1?'':'s'}`:`📖 Continue summary (${Math.max(0,totalUnits-doneUnits)} units remaining)`;
+    if (window.CourseMateGrowth && doneUnits > 0) {
+      window.CourseMateGrowth.recordActivity('summary');
+      window.CourseMateGrowth.renderTaskShareCard({
+        title: 'Summary complete',
+        detail: `I just summarized ${matTitle || 'my course material'} with CourseMate.`
+      });
+    }
     renderTree();
   }catch(e){ st.textContent='❌ Summary stopped: '+e.message; gb.disabled=false; gb.textContent=label; }
   finally{ clearInterval(timer); }
@@ -376,5 +386,6 @@ window.copyComprehensive = copyComprehensive;
 
 initUser();
 </script>
+<script src="/js/growth.js?v=2"></script>
 </body>
 </html>

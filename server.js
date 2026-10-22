@@ -32,6 +32,9 @@ const PRODUCTION = process.env.NODE_ENV === 'production';
 // Private owner access: emails listed in ADMIN_EMAILS (set on the server only) get unlimited everything.
 // Nothing in the website mentions this, there is no admin page, and a student cannot grant it to themselves.
 const ADMINS = (process.env.ADMIN_EMAILS || '').toLowerCase().split(',').map(x => x.trim()).filter(Boolean);
+const FEEDBACK_RECIPIENTS = ADMINS.length ? ADMINS : ['oliverjohnthebaptist@gmail.com'];
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || '';
 
 const ROOT = __dirname;
 const STORAGE_ROOT = process.env.COURSEMATE_STORAGE_DIR ? path.resolve(process.env.COURSEMATE_STORAGE_DIR) : null;
@@ -393,6 +396,69 @@ app.get('/api/me', (req, res) => {
     department: u.department || null
   });
 });
+
+const feedbackRequests = new Map();
+app.post('/api/feedback', asyncHandler(async (req, res) => {
+  const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
+  if (message.length < 3 || message.length > 5000) {
+    return res.status(400).json({ error: 'Feedback must be between 3 and 5,000 characters.' });
+  }
+  if (!RESEND_API_KEY || !RESEND_FROM_EMAIL) {
+    return res.status(503).json({ error: 'Feedback email is not configured yet. Please contact the site administrator.' });
+  }
+
+  const uid = ctx().uid;
+  const now = Date.now();
+  const lastRequest = feedbackRequests.get(uid) || 0;
+  if (now - lastRequest < 30_000) {
+    return res.status(429).json({ error: 'Please wait 30 seconds before sending more feedback.' });
+  }
+  feedbackRequests.set(uid, now);
+
+  const user = ctx().user || {};
+  const origin = req.get('origin') || APP_URL;
+  const sender = [user.name, user.email].filter(Boolean).join(' — ') || 'Signed-in student';
+  const text = [
+    'New CourseMate feedback',
+    `From: ${sender}`,
+    `User ID: ${uid}`,
+    `Page: ${origin}`,
+    '',
+    message
+  ].join('\n');
+
+  let response;
+  try {
+    response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: RESEND_FROM_EMAIL,
+        to: FEEDBACK_RECIPIENTS,
+        subject: 'CourseMate student feedback',
+        text,
+        ...(user.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email) ? { reply_to: user.email } : {})
+      }),
+      signal: AbortSignal.timeout(10_000)
+    });
+  } catch (error) {
+    feedbackRequests.delete(uid);
+    console.error('[feedback] email provider request failed', error);
+    return res.status(502).json({ error: 'Feedback could not be delivered right now. Please try again shortly.' });
+  }
+
+  if (!response.ok) {
+    feedbackRequests.delete(uid);
+    const providerMessage = await response.text().catch(() => '');
+    console.error(`[feedback] email provider returned HTTP ${response.status}: ${providerMessage.slice(0, 500)}`);
+    return res.status(502).json({ error: 'Feedback could not be delivered right now. Please try again shortly.' });
+  }
+
+  res.json({ ok: true });
+}));
 
 app.post('/api/profile/complete', asyncHandler(async (req, res) => {
   const { matric, department, level } = req.body || {};
@@ -828,6 +894,7 @@ app.get('/api/stats', (req, res) => {
   const sums = CLOUD_DATA ? (ctx().summaries || {}) : rd(SUM_FILE, {});
   res.json({
     materials: mine.size, tma_solved: tma, quizzes: u.usage.quiz || 0,
+    ai_chats: u.usage.chat || 0,
     quiz_attempts: quiz.length,
     avg_score: pct.length ? Math.round(pct.reduce((a, b) => a + b, 0) / pct.length) : 0,
     summaries: [...mine].reduce((a, id) => a + Object.keys((sums[id] && sums[id].units) || {}).length, 0)

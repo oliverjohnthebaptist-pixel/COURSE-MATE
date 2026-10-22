@@ -66,6 +66,7 @@ body{background:#060D09;color:#E8F5EC;font-family:'Inter',sans-serif;min-height:
       <div class="drop-header"><div class="drop-avatar" id="dropAvatar"><span id="dropAvatarLetter">O</span></div><div><div style="font-weight:700;font-size:13px" id="dropName">Oliver John</div><div style="font-size:11px;color:#8BA89A" id="dropEmail">oliver@email.com</div><div style="font-size:10px;color:#2AF598;margin-top:2px" id="dropPlanBadge">Free • 0/3 PDFs</div></div></div>
       <div class="drop-item" onclick="location.href='settings.html'"><span>👤</span> My Profile</div>
       <div class="drop-item" onclick="location.href='settings.html'"><span>⚙</span> Settings</div>
+      <div class="drop-item" data-open-feedback><span>💬</span> Feedback</div>
       <div class="drop-item" onclick="handleUploadPhoto()"><span>📷</span> Change profile photo</div>
       <div class="drop-item" onclick="location.href='../../index.html#pricing'"><span>💳</span> Billing - Starter 7 PDFs ₦4,500</div>
       <div class="drop-divider"></div>
@@ -99,6 +100,8 @@ body{background:#060D09;color:#E8F5EC;font-family:'Inter',sans-serif;min-height:
     <div id="ocrWrap">Scanned/image-only PDFs are not OCR-processed. Upload a searchable PDF with selectable text to use the TMA solver.</div>
     <button id="solveBtn" style="width:100%;margin-top:12px;height:44px;background:#2AF598;border:none;border-radius:10px;font-weight:800;cursor:pointer">Solve From Material</button>
   </div>
+
+  <div id="taskShareCard" class="card" style="display:none;background:linear-gradient(135deg,#0E2A1C,#101E14);border:1px solid #2AF59855"></div>
 
   <div class="card" style="margin-top:16px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
@@ -355,6 +358,13 @@ document.getElementById('solveBtn').onclick=async()=>{
     document.getElementById('allAccCard').style.display='block';
     document.getElementById('allAccList').innerHTML=allAccumulated.map((a,i)=>answerCard(a,i)).join('');
     document.getElementById('exportBtn').style.display='inline-block';
+    if(window.CourseMateGrowth){
+      window.CourseMateGrowth.recordActivity('TMA');
+      window.CourseMateGrowth.renderTaskShareCard({
+        title:'TMA complete',
+        detail:`I just worked through TMA questions for ${cleanTitle()||'my course material'} with CourseMate.`
+      });
+    }
   }catch(e){
     document.getElementById('status').textContent='Could not solve TMA: '+e.message;
     document.getElementById('status').style.color='#ff6b6b';
@@ -401,5 +411,6 @@ document.getElementById('exportBtn').onclick=async()=>{
 
 initUser();
 </script>
+<script src="/js/growth.js?v=2"></script>
 </body>
 </html>

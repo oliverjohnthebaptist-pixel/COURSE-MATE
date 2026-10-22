@@ -83,6 +83,7 @@
   <div class="card" id="quizCard" style="display:none">
     <div id="panel"></div>
     <div id="quiz"></div>
+    <div id="taskShareCard" class="card" style="display:none;background:linear-gradient(135deg,#0E2A1C,#101E14);border:1px solid #2AF59855"></div>
   </div>
 
   <div class="card" id="histCard" style="display:none">
@@ -114,12 +115,18 @@ async function loadHist(){
   const list=document.getElementById('histList'), card=document.getElementById('histCard');
   if(!sel.value){card.style.display='none';return;}
   try{
-    const d=await (await fetch('/api/quiz/history/'+sel.value)).json();
+    const response=await fetch('/api/quiz/history/'+encodeURIComponent(sel.value));
+    const d=await response.json();
+    if(!response.ok) throw new Error(d.error||`Could not load quiz history (HTTP ${response.status}).`);
+    if(!Array.isArray(d.results)) throw new Error('The quiz history response was not valid.');
     if(!d.results.length){card.style.display='none';return;}
     card.style.display='block';
     list.innerHTML=d.results.slice(0,10).map(r=>{const p=r.total?Math.round(r.score/r.total*100):0; const lv=r.level||r.difficulty;
       return `<div style="display:flex;justify-content:space-between;align-items:center;background:#0E2016;border:1px solid #1C3324;border-radius:12px;padding:10px 14px;margin-bottom:8px;font-size:12px"><span style="color:#C5D9CC">${CM.fmtDate(r.at)} - ${E(LV[lv]||lv||'')} - ${r.total} questions</span><b style="color:${p>=70?'#2AF598':p>=50?'#ffb347':'#ff6b6b'}">${r.score}/${r.total} (${p}%)</b></div>`;}).join('');
-  }catch{}
+  }catch(error){
+    card.style.display='block';
+    list.textContent=`Could not load quiz history: ${error.message}`;
+  }
 }
 CM.materials(sel, loadHist);
 CM.uploader(document.getElementById('uploadSlot'),{reload:()=>CM.materials(sel,loadHist)});
@@ -172,7 +179,13 @@ async function downloadQuizPdf(){ try{ await CMPDF.quiz({title:(Q.title||'Quiz')
 async function finish(){
   const n=Q.questions.length, score=Q.questions.filter((q,i)=>picks[i]===q.answer).length, pct=Math.round(score/n*100);
   const by={}; ['easy','medium','hard'].forEach(l=>{ const qs=Q.questions.map((q,i)=>({q,i})).filter(x=>x.q.level===l); if(qs.length) by[l]={score:qs.filter(x=>picks[x.i]===x.q.answer).length,total:qs.length}; });
-  try{ await fetch('/api/quiz/result',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({material_id:Q.material_id,title:Q.title,level:Q.level,score,total:n,by_level:by})}); }catch{}
+  let resultSaveError='';
+  try{
+    const response=await fetch('/api/quiz/result',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({material_id:Q.material_id,title:Q.title,level:Q.level,score,total:n,by_level:by})});
+    if(!response.ok) throw new Error(`HTTP ${response.status}`);
+  }catch(error){
+    resultSaveError=`Your score could not be saved (${error.message}).`;
+  }
   const wrong=Q.questions.map((q,i)=>({q,i})).filter(x=>picks[x.i]!==x.q.answer);
   const msg=pct>=80?'Excellent work!':pct>=60?'Good job - keep revising.':'Keep going - review the pages below and try again.';
   const lvBox=Object.entries(by).map(([l,v])=>`<div style="flex:1;min-width:90px;background:#0E2016;border:1px solid #1C3324;border-radius:12px;padding:10px;text-align:center"><div style="margin-bottom:4px">${badge(l)}</div><div style="font-size:16px;font-weight:800;color:#fff">${v.score}/${v.total}</div></div>`).join('');
@@ -195,6 +208,14 @@ async function finish(){
       <button onclick="start(Q)" style="flex:1;height:44px;background:#111F18;border:1px solid #2AF598;color:#2AF598;border-radius:10px;font-weight:800;cursor:pointer">Retake This Quiz</button>
       <button onclick="newQuiz()" style="flex:1;height:44px;background:#2AF598;border:none;border-radius:10px;font-weight:800;cursor:pointer">New Random Quiz</button>
     </div>`;
+  if(resultSaveError) document.getElementById('status').textContent=resultSaveError;
+  if(window.CourseMateGrowth){
+    window.CourseMateGrowth.recordActivity('quiz');
+    window.CourseMateGrowth.renderTaskShareCard({
+      title:'Quiz complete',
+      detail:`I just completed a quiz on ${Q.title||'my course material'} with CourseMate.`
+    });
+  }
   loadHist();
 }
 function newQuiz(){ document.getElementById('quizCard').style.display='none'; document.getElementById('setupCard').scrollIntoView({behavior:'smooth'}); document.getElementById('goBtn').click(); }
@@ -204,5 +225,6 @@ document.addEventListener('keydown',e=>{ if(!Q||document.getElementById('quizCar
   else if(e.key==='Enter'){ const b=document.querySelector('#fb button'); if(b) b.click(); } });
 
 </script>
+<script src="/js/growth.js?v=2"></script>
 </body>
 </html>
