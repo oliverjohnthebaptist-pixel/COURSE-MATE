@@ -459,6 +459,44 @@ function register(app, { groq, loadMaterials, loadHistory, loadSummary, saveSumm
       emit({ type: 'done', covered: r.covered, topic: r.topic || '' }); res.end();
     } catch (e) { fail(res, sent, e); }
   };
+
+  // FIX: define queueJob INSIDE register where jobs is available
+  const queueJob = (type) => async (req, res) => {
+    try {
+      // jobs.create is the standard method in your jobs system
+      // It returns a job id and runs summaryRun / quizJob / tutor in background
+      const payload = req.body || {};
+      if (!payload.material_id && req.params && req.params.id) payload.material_id = req.params.id;
+      
+      if (jobs && typeof jobs.create === 'function') {
+        const job = await jobs.create(type, payload);
+        return res.json({ jobId: job.id || job.jobId, status: 'queued', type });
+      }
+      if (jobs && typeof jobs.enqueue === 'function') {
+        const job = await jobs.enqueue(type, payload);
+        return res.json({ jobId: job.id || job.jobId, status: 'queued', type });
+      }
+      // Fallback if jobs system not wired: run old direct handlers
+      if (type === 'summary') {
+        const emit = ndjson(res);
+        await summaryRun(payload, emit);
+        return;
+      }
+      if (type === 'quiz') {
+        const emit = ndjson(res);
+        await quizJob(payload, emit);
+        return;
+      }
+      if (type === 'tutor') {
+        return tutorRoute(req, res);
+      }
+      return res.status(500).json({ error: 'Job queue not configured' });
+    } catch (e) {
+      console.error('queueJob error:', e);
+      if (!res.headersSent) res.status(500).json({ error: e.message || 'Failed to queue job' });
+    }
+  };
+
   app.post('/api/summary', queueJob('summary'));
   app.post('/api/quiz/generate', queueJob('quiz'));
   app.post('/api/tutor', queueJob('tutor'));
