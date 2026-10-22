@@ -6,7 +6,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "start": "node server.js","build:netlify": "node scripts/build-netlify.js",
+    "start": "node server.js",
+    "build:netlify": "node scripts/build-netlify.js",
     "migrate:check": "node scripts/migrate-to-supabase.js --dry-run",
     "migrate:supabase": "node scripts/migrate-to-supabase.js"
   },

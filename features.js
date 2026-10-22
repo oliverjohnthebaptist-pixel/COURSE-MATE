@@ -56,23 +56,30 @@ const cache = new Map();
 async function loadMaterial(rows, id) {
   const row = rows.find(x => x.id === id);
   if (!row) return null;
-  const raw = await E.getPages(row);
-  let c = cache.get(row.id);
-  if (!c) {
-    const head = findHeader(raw.pages);
-    const n = head ? head.split(' ').length : 0;
-    const pages = raw.pages.map(t => { if (!head) return t; const w = String(t).split(/\s+/).filter(Boolean); return w.slice(0, n).join(' ') === head ? w.slice(n).join(' ') : t; });
-    let outline = O.buildOutline(raw.pages);
-    if (!outline.structured) {                       // no Module/Unit markers: split into parts so the feature still works
-      const N = raw.pages.length, k = Math.max(1, Math.min(8, Math.ceil(raw.pages.join('').length / 14000))), per = Math.ceil(N / k), units = [];
-      for (let i = 0; i < N; i += per) units.push({ n: units.length + 1, title: `Pages ${i + 1}-${Math.min(N, i + per)}`, start: i + 1, end: Math.min(N, i + per), sections: [] });
-      outline = { structured: false, modules: [{ n: 1, title: '', start: 1, end: N, units }], pages: N };
-    }
-    c = { head, pages, info: { pages, approx: raw.approx }, outline };
-    cache.set(row.id, c);
+  let pending = cache.get(row.id);
+  if (!pending) {
+    pending = (async () => {
+      const raw = await E.getPages(row);
+      const head = findHeader(raw.pages);
+      const n = head ? head.split(' ').length : 0;
+      const pages = raw.pages.map(t => { if (!head) return t; const w = String(t).split(/\s+/).filter(Boolean); return w.slice(0, n).join(' ') === head ? w.slice(n).join(' ') : t; });
+      let outline = O.buildOutline(raw.pages);
+      if (!outline.structured) {                       // no Module/Unit markers: split into parts so the feature still works
+        const N = raw.pages.length, k = Math.max(1, Math.min(8, Math.ceil(raw.pages.join('').length / 14000))), per = Math.ceil(N / k), units = [];
+        for (let i = 0; i < N; i += per) units.push({ n: units.length + 1, title: `Pages ${i + 1}-${Math.min(N, i + per)}`, start: i + 1, end: Math.min(N, i + per), sections: [] });
+        outline = { structured: false, modules: [{ n: 1, title: '', start: 1, end: N, units }], pages: N };
+      }
+      const info = { pages, approx: raw.approx };
+      return { head, info, outline, raw: raw.pages, idx: E.buildIndex(row.id + ':clean', info) };
+    })();
+    cache.set(row.id, pending);
   }
-  const idx = E.buildIndex(row.id + ':clean', c.info);
-  return { row, info: c.info, idx, raw: raw.pages, head: c.head, outline: c.outline };
+  try {
+    return { row, ...(await pending) };
+  } catch (error) {
+    if (cache.get(row.id) === pending) cache.delete(row.id);
+    throw error;
+  }
 }
 const whereIs = (outline, page) => {
   if (!outline.structured) return '';
@@ -456,16 +463,23 @@ function register(app, { groq, loadMaterials, loadHistory, loadSummary, saveSumm
     } catch (e) { jsonErr(res, 500, e.message); }
   });
   const tutorRoute = async (req, res) => {
-    const b = req.body || {}; let sent = false;
+    const b = req.body || {}; let sent = false, heartbeat;
     try {
       const message = flat(b.message).slice(0, 1500);
       if (!message && !['unit', 'quizme'].includes(b.mode)) return jsonErr(res, 400, 'Type a question first');
-      const m = await loadMaterial(loadMaterials(), b.material_id);
-      if (!m) return jsonErr(res, 404, 'Go to Materials and upload a PDF first');
+      const rows = loadMaterials();
+      if (!rows.some(row => row.id === b.material_id)) return jsonErr(res, 404, 'Go to Materials and upload a PDF first');
       const emit = ndjson(res); sent = true;
+      emit({ type: 'step', key: 'load', title: 'Preparing your course material', done: false, desc: 'I’m loading the PDF text for your tutor request.' });
+      heartbeat = setInterval(() => emit({ type: 'ping' }), 10000);
+      res.on('close', () => clearInterval(heartbeat));
+      const m = await loadMaterial(rows, b.material_id);
+      emit({ type: 'step', key: 'load', title: 'Preparing your course material', done: true, desc: 'Your PDF is ready. I’m working on your question.' });
       const r = await tutor({ groq, m, b: { ...b, message }, emit });
-      emit({ type: 'done', covered: r.covered, topic: r.topic || '' }); res.end();
+      emit({ type: 'done', covered: r.covered, topic: r.topic || '' });
+      res.end();
     } catch (e) { fail(res, sent, e); }
+    finally { clearInterval(heartbeat); }
   };
   app.post('/api/tutor', tutorRoute);
   app.post('/api/chat', tutorRoute);

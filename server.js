@@ -2,7 +2,6 @@
 // - Wires the real AI engines (tma_engine.js, features.js) that the old stub server never used
 // - Every student only sees their own PDFs / answers (Supabase login verified on the server)
 // - Free / Starter limits enforced on the SERVER (cannot be bypassed from the browser)
-// - Paystack checkout + webhook upgrades the plan
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
@@ -26,8 +25,7 @@ const SB_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SB_KEY = process.env.SUPABASE_ANON_KEY || '';
 const SB_SERVICE = process.env.SUPABASE_SERVICE_KEY || '';
 const CLOUD_DATA = !!SB_SERVICE;
-const PAYSTACK = process.env.PAYSTACK_SECRET_KEY || '';
-const STARTER_PRICE = parseInt(process.env.STARTER_PRICE_NGN, 10) || 4500;
+const STARTER_PRICE = 4500;
 const REQUIRE_AUTH = !!SB_URL; // no SUPABASE_URL = local test mode (everyone is the same "dev" user)
 const GROQ_KEY = process.env.GROQ_API_KEY || '';
 const PRODUCTION = process.env.NODE_ENV === 'production';
@@ -200,8 +198,7 @@ const asyncHandler = handler => (req, res, next) => Promise.resolve(handler(req,
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
 app.use((req, res, next) => { res.setHeader('X-Content-Type-Options', 'nosniff'); res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); next(); });
-// raw body kept ONLY so the Paystack webhook signature can be verified
-app.use(express.json({ limit: '2mb', verify: (req, _res, buf) => { if (req.originalUrl.startsWith('/api/pay/webhook')) req.rawBody = buf; } }));
+app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 /* ---- static files: ONLY the public site. (The old server exposed the whole project folder incl. uploaded PDFs and data.) */
@@ -234,7 +231,7 @@ app.get('/api/profile/check', (req, res) => {
 /* ---- health (public). ?deep=1 makes one tiny real AI call so you can confirm the AI is truly active. */
 const groq = GROQ_KEY ? new Groq({ apiKey: GROQ_KEY }) : null;
 app.get('/api/health', async (req, res) => {
-  const out = { ok: true, engine: E.ENGINE_VERSION, ai_key: !!GROQ_KEY, ai: AI.status(), login_check: REQUIRE_AUTH, paystack: !!PAYSTACK };
+  const out = { ok: true, engine: E.ENGINE_VERSION, ai_key: !!GROQ_KEY, ai: AI.status(), login_check: REQUIRE_AUTH };
   if (req.query.deep === '1') {
     try { const r = await E.callModel(groq, 'Reply with the single word OK.', 'ping', 64); out.ai_live = /ok/i.test(String(r)); }
     catch (e) { out.ai_live = false; out.ai_error = AI.friendly(e); out.ai_kind = e && e.kind; }
@@ -242,7 +239,7 @@ app.get('/api/health', async (req, res) => {
   res.json(out);
 });
 
-/* ---- Paystack webhook + redirect callback: NOT behind login (Paystack / the browser redirect has no token) */
+/* ---- Manual payment activation */
 async function activateStarter(uid, ref, email) {
   let u;
   if (CLOUD_DATA) {
@@ -255,7 +252,7 @@ async function activateStarter(uid, ref, email) {
     u = getUser(uid, email);
   }
   if (!Array.isArray(u.refs)) u.refs = [];
-  if (ref && u.refs.includes(ref)) return false; // already processed (webhook + callback both arrive)
+  if (ref && u.refs.includes(ref)) return false;
   const base = u.plan === 'starter' && u.plan_expires > Date.now() ? u.plan_expires : Date.now();
   u.plan = 'starter'; u.plan_expires = base + 30 * 24 * 3600 * 1000;
   u.usage = { tma: 0, chat: 0, quiz: 0 }; // fresh Starter allowance each paid month
@@ -276,38 +273,6 @@ async function activateStarter(uid, ref, email) {
   console.log(`[pay] Starter activated for ${uid} ref=${ref}`);
   return true;
 }
-async function paystackVerify(ref) {
-  const r = await fetch('https://api.paystack.co/transaction/verify/' + encodeURIComponent(ref), { headers: { Authorization: 'Bearer ' + PAYSTACK } });
-  const j = await r.json();
-  const d = j && j.data;
-  if (!j.status || !d || d.status !== 'success') return null;
-  if (d.currency !== 'NGN' || d.amount < STARTER_PRICE * 100) return null; // underpaid / wrong currency
-  return d;
-}
-app.post('/api/pay/webhook', (req, res) => {
-  if (!PAYSTACK) return res.sendStatus(503);
-  const sig = req.get('x-paystack-signature') || '';
-  const mac = crypto.createHmac('sha512', PAYSTACK).update(req.rawBody || Buffer.from('')).digest('hex');
-  if (sig.length !== mac.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(mac))) return res.sendStatus(401);
-  res.sendStatus(200); // answer fast; Paystack retries otherwise
-  const ev = req.body || {};
-  if (ev.event === 'charge.success' && ev.data && ev.data.metadata && ev.data.metadata.user_id) {
-    const d = ev.data;
-    if (d.currency === 'NGN' && d.amount >= STARTER_PRICE * 100) {
-      activateStarter(d.metadata.user_id, d.reference, d.customer && d.customer.email)
-        .catch(error => console.error('[pay] could not persist Starter activation', error));
-    }
-  }
-});
-app.get('/api/pay/callback', async (req, res) => {
-  const ref = String(req.query.reference || req.query.trxref || '');
-  try {
-    const d = ref && PAYSTACK ? await paystackVerify(ref) : null;
-    if (d && d.metadata && d.metadata.user_id) { await activateStarter(d.metadata.user_id, ref, d.customer && d.customer.email); return res.redirect('/dashboard.html?paid=1'); }
-  } catch (e) { console.error('[pay] verify failed', e.message); }
-  res.redirect('/dashboard.html?paid=0');
-});
-
 /* ---- everything else under /api needs a logged-in student */
 const tokCache = new Map();
 async function loadCloudRequestData(user) {
@@ -439,22 +404,6 @@ app.post('/api/profile/complete', asyncHandler(async (req, res) => {
   await USERS.save();
   res.json({ ok: true });
 }));
-
-app.post('/api/pay/init', async (req, res) => {
-  if (!PAYSTACK) return res.status(503).json({ error: 'Payments are not switched on yet.' });
-  const email = ctx().user.email;
-  if (!email) return res.status(400).json({ error: 'Your account has no email.' });
-  try {
-    const reference = 'cm_' + String(ctx().uid).slice(0, 8) + '_' + Date.now();
-    const r = await fetch('https://api.paystack.co/transaction/initialize', {
-      method: 'POST', headers: { Authorization: 'Bearer ' + PAYSTACK, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, amount: STARTER_PRICE * 100, currency: 'NGN', reference, callback_url: APP_URL + '/api/pay/callback', metadata: { user_id: ctx().uid, plan: 'starter' } })
-    });
-    const j = await r.json();
-    if (!j.status) return res.status(502).json({ error: j.message || 'Could not start payment.' });
-    res.json({ url: j.data.authorization_url, reference });
-  } catch (e) { res.status(502).json({ error: 'Could not reach Paystack. Try again.' }); }
-});
 
 /* ---- manual bank transfer payment */
 const evidenceUpload = multer({
@@ -947,7 +896,6 @@ if (require.main === module) {
     console.log(`\nCourseMate running on ${APP_URL}`);
     console.log(`  AI key:      ${GROQ_KEY ? 'set' : 'MISSING (add GROQ_API_KEY)'}`);
     console.log(`  Login check: ${REQUIRE_AUTH ? 'Supabase (on)' : 'OFF - local test mode only!'}`);
-    console.log(`  Paystack:    ${PAYSTACK ? 'set' : 'not set (upgrade button disabled)'}`);
     console.log(`  Check AI:    ${APP_URL}/api/health?deep=1\n`);
   });
 }

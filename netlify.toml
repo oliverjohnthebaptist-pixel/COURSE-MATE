@@ -4,6 +4,6 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "https://YOUR-RENDER-SERVICE.onrender.com/api/:splat"
+  to = "https://course-mate-0wo4.onrender.com/api/:splat"
   status = 200
   force = true
