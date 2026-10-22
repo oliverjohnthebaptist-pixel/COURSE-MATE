@@ -15,10 +15,36 @@ window.CM = (function () {
     } catch { sel.innerHTML = '<option value="">Failed to load materials</option>'; return []; }
   }
 
-  // POST JSON and read a stream of JSON lines. Returns the 'done' event.
+  async function waitJob(id, onEvent) {
+    let after = 0, doneEvent = null;
+    while (true) {
+      const response = await fetch(`/api/jobs/${encodeURIComponent(id)}?after=${after}`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || `Could not check task status (${response.status}).`);
+      for (const event of data.events || []) {
+        if (event.type === 'error') throw new Error(event.error || 'The task could not be completed.');
+        if (event.type === 'done') { doneEvent = event; continue; }
+        if (event.type !== 'ping' && onEvent) onEvent(event);
+      }
+      after = Number(data.after) || after;
+      if (data.status === 'failed') throw new Error(data.error || 'The task could not be completed.');
+      if (data.status === 'completed') {
+        if (doneEvent) return doneEvent;
+        throw new Error('The task ended without returning a result. Please try again.');
+      }
+      await new Promise(resolve => setTimeout(resolve, 1200));
+    }
+  }
+
+  // POST JSON and read a stream of JSON lines or poll a queued background task.
   async function stream(url, body, onEvent) {
     const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || ('Server error ' + r.status)); }
+    if (r.status === 202) {
+      const queued = await r.json().catch(() => ({}));
+      if (!queued.job_id) throw new Error('The server accepted the task but did not return its task ID.');
+      return waitJob(queued.job_id, onEvent);
+    }
     if (!r.body) throw new Error('The server returned an empty response. Please try again.');
     const reader = r.body.getReader(), dec = new TextDecoder(); let buf = '', done = null;
     while (true) {
@@ -131,5 +157,5 @@ window.CM = (function () {
   }
   const chip = (label, on, click) => `<button onclick="${click}" style="cursor:pointer;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:700;border:1px solid ${on ? '#2AF598' : '#1C3324'};background:${on ? '#2AF598' : '#111F18'};color:${on ? '#05210F' : '#8BA89A'}">${label}</button>`;
   const fmtDate = t => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-  return { esc, cleanTitle, materials, stream, panel, tab, md, prefs, chip, fmtDate, uploader };
+  return { esc, cleanTitle, materials, stream, waitJob, panel, tab, md, prefs, chip, fmtDate, uploader };
 })();

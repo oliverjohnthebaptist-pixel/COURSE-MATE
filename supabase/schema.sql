@@ -59,21 +59,80 @@ create unique index if not exists cm_payment_activation_code_idx
   on public.cm_payment_submissions((payload->>'code'))
   where coalesce(payload->>'code', '') <> '';
 
+create table if not exists public.cm_ai_jobs (
+  id uuid primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  type text not null check (type in ('tma', 'quiz', 'tutor', 'summary')),
+  payload jsonb not null default '{}'::jsonb,
+  status text not null default 'queued' check (status in ('queued', 'running', 'completed', 'failed')),
+  error text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  claimed_at timestamptz,
+  completed_at timestamptz
+);
+create index if not exists cm_ai_jobs_queue_idx on public.cm_ai_jobs(status, created_at);
+create index if not exists cm_ai_jobs_user_idx on public.cm_ai_jobs(user_id, created_at desc);
+
+create table if not exists public.cm_ai_job_events (
+  seq bigint generated always as identity primary key,
+  job_id uuid not null references public.cm_ai_jobs(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  events jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now()
+);
+create index if not exists cm_ai_job_events_user_job_seq_idx
+  on public.cm_ai_job_events(user_id, job_id, seq);
+
+create or replace function public.claim_cm_ai_job()
+returns setof public.cm_ai_jobs
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  return query
+  with candidate as (
+    select id
+    from public.cm_ai_jobs
+    where status = 'queued'
+       or (status = 'running' and claimed_at < now() - interval '30 minutes')
+    order by created_at
+    for update skip locked
+    limit 1
+  )
+  update public.cm_ai_jobs as jobs
+  set status = 'running',
+      claimed_at = now(),
+      updated_at = now()
+  from candidate
+  where jobs.id = candidate.id
+  returning jobs.*;
+end;
+$$;
+
 alter table public.cm_user_state enable row level security;
 alter table public.cm_materials enable row level security;
 alter table public.cm_tma_history enable row level security;
 alter table public.cm_quiz_results enable row level security;
 alter table public.cm_summaries enable row level security;
 alter table public.cm_payment_submissions enable row level security;
+alter table public.cm_ai_jobs enable row level security;
+alter table public.cm_ai_job_events enable row level security;
 
 -- No client policies are intentional: all data access is performed by the
 -- authenticated application server with its server-side service-role key.
 revoke all on public.cm_user_state, public.cm_materials, public.cm_tma_history,
-  public.cm_quiz_results, public.cm_summaries, public.cm_payment_submissions
+  public.cm_quiz_results, public.cm_summaries, public.cm_payment_submissions,
+  public.cm_ai_jobs, public.cm_ai_job_events
   from anon, authenticated;
 grant all on public.cm_user_state, public.cm_materials, public.cm_tma_history,
-  public.cm_quiz_results, public.cm_summaries, public.cm_payment_submissions
+  public.cm_quiz_results, public.cm_summaries, public.cm_payment_submissions,
+  public.cm_ai_jobs, public.cm_ai_job_events
   to service_role;
+grant usage, select on sequence public.cm_ai_job_events_seq_seq to service_role;
+revoke all on function public.claim_cm_ai_job() from public, anon, authenticated;
+grant execute on function public.claim_cm_ai_job() to service_role;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('coursemate-files', 'coursemate-files', false, 104857600, array['application/pdf']),

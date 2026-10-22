@@ -13,6 +13,7 @@ const { AsyncLocalStorage } = require('async_hooks');
 const GroqLib = require('groq-sdk');
 const Groq = GroqLib.Groq || GroqLib.default || GroqLib;
 const cloudStore = require('./supabase-store');
+const jobs = require('./ai-jobs');
 
 const E = require('./tma_engine');
 const AI = require('./ai');
@@ -28,7 +29,13 @@ const CLOUD_DATA = !!SB_SERVICE;
 const STARTER_PRICE = 4500;
 const REQUIRE_AUTH = !!SB_URL; // no SUPABASE_URL = local test mode (everyone is the same "dev" user)
 const GROQ_KEY = process.env.GROQ_API_KEY || '';
+const GROQ_REQUEST_TIMEOUT_MS = process.env.GROQ_REQUEST_TIMEOUT_MS === undefined
+  ? 10 * 60 * 1000
+  : Number(process.env.GROQ_REQUEST_TIMEOUT_MS);
 const PRODUCTION = process.env.NODE_ENV === 'production';
+if (!Number.isSafeInteger(GROQ_REQUEST_TIMEOUT_MS) || GROQ_REQUEST_TIMEOUT_MS <= 0) {
+  throw new Error('GROQ_REQUEST_TIMEOUT_MS must be a positive integer number of milliseconds.');
+}
 // Private owner access: emails listed in ADMIN_EMAILS (set on the server only) get unlimited everything.
 // Nothing in the website mentions this, there is no admin page, and a student cannot grant it to themselves.
 const ADMINS = (process.env.ADMIN_EMAILS || '').toLowerCase().split(',').map(x => x.trim()).filter(Boolean);
@@ -232,7 +239,7 @@ app.get('/api/profile/check', (req, res) => {
   res.json({ ok: true });
 });
 /* ---- health (public). ?deep=1 makes one tiny real AI call so you can confirm the AI is truly active. */
-const groq = GROQ_KEY ? new Groq({ apiKey: GROQ_KEY }) : null;
+const groq = GROQ_KEY ? new Groq({ apiKey: GROQ_KEY, timeout: GROQ_REQUEST_TIMEOUT_MS }) : null;
 app.get('/api/health', async (req, res) => {
   const out = { ok: true, engine: E.ENGINE_VERSION, ai_key: !!GROQ_KEY, ai: AI.status(), login_check: REQUIRE_AUTH };
   if (req.query.deep === '1') {
@@ -841,7 +848,7 @@ app.post('/api/tma/clear/:id', asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
-app.post('/api/tma/solve', aiRate, mpOnly, async (req, res) => {
+app.post('/api/tma/solve', aiRate, mpOnly, asyncHandler(async (req, res) => {
   const body = req.body || {};
   const text = String(body.tma_text || '').trim().slice(0, 60000);
   const row = myMaterials().find(m => m.id === body.material_id);
@@ -856,32 +863,39 @@ app.post('/api/tma/solve', aiRate, mpOnly, async (req, res) => {
   if (left <= 0) return limitHit(res, 'TMA answers', u.usage.tma || 0, plan.tma);
   if (want > left) return limitHit(res, 'TMA answers', u.usage.tma || 0, plan.tma, `You pasted ${want} questions but only ${left} are left. `);
 
-  res.setHeader('Content-Type', 'application/x-ndjson'); res.setHeader('Cache-Control', 'no-cache'); res.setHeader('X-Accel-Buffering', 'no');
-  res.flushHeaders && res.flushHeaders();
-  const emit = o => { try { res.write(JSON.stringify(o) + '\n'); } catch {} };
-  const uid = ctx().uid;
-  try {
-    const result = await E.solveTMA({ row, text, groq, emit });
-    // accumulate answers per course (replace repeated questions)
-    let ent = HIST.get().find(h => h.material_id === row.id && h.user_id === uid);
-    if (!ent) { ent = { material_id: row.id, user_id: uid, title: row.title, answers: [] }; HIST.get().push(ent); }
-    result.answers.forEach(a => {
-      const k = E.norm(a.question || '');
-      const i = ent.answers.findIndex(x => E.norm(x.question || '') === k);
-      i >= 0 ? (ent.answers[i] = a) : ent.answers.push(a);
-    });
-    ent.updated_at = new Date().toISOString(); await HIST.save();
-    const good = result.answers.filter(a => a.found !== false || a.isGeneral).length; // delivered answers (PDF or flagged general knowledge) use up allowance; failures do not
-    if (good) await bump(uid, 'tma', good);
-    emit({ type: 'done', payload: {
-      answers: result.answers, all_answers: ent.answers, new_count: result.answers.length, total_accumulated: ent.answers.length,
-      not_found: result.answers.length - good, mode: result.mode, skipped: result.skipped || 0
-    } });
-  } catch (e) {
-    console.error('[tma]', e);
-    emit({ type: 'error', error: 'The AI could not finish: ' + String(e.message || e).slice(0, 200) });
+  const id = await jobs.enqueue(ctx().uid, 'tma', { material_id: row.id, tma_text: text });
+  res.status(202).json({ job_id: id });
+}));
+
+jobs.register('tma', async (payload, emit) => {
+  const text = String(payload.tma_text || '').trim().slice(0, 60000);
+  const row = myMaterials().find(material => material.id === payload.material_id);
+  if (!row) throw new Error('Go to Materials and upload your PDF first.');
+  if (row.scanned) throw new Error('This PDF appears to be scanned/image-only. OCR is not available; upload a searchable PDF with selectable text.');
+  const { plan, u } = limitsFor(ctx().uid);
+  const requested = (E.extractTMA(text) || []).length;
+  const left = plan.tma - (u.usage.tma || 0);
+  if (requested > left) throw new Error(`Only ${Math.max(0, left)} TMA answers remain in your plan. Please shorten the request or upgrade.`);
+  const result = await E.solveTMA({ row, text, groq, emit });
+  let ent = HIST.get().find(h => h.material_id === row.id && h.user_id === ctx().uid);
+  if (!ent) {
+    ent = { material_id: row.id, user_id: ctx().uid, title: row.title, answers: [] };
+    HIST.get().push(ent);
   }
-  res.end();
+  result.answers.forEach(answer => {
+    const key = E.norm(answer.question || '');
+    const index = ent.answers.findIndex(item => E.norm(item.question || '') === key);
+    if (index >= 0) ent.answers[index] = answer;
+    else ent.answers.push(answer);
+  });
+  ent.updated_at = new Date().toISOString();
+  await HIST.save();
+  const good = result.answers.filter(answer => answer.found !== false || answer.isGeneral).length;
+  if (good) await bump(ctx().uid, 'tma', good);
+  emit({ type: 'done', payload: {
+    answers: result.answers, all_answers: ent.answers, new_count: result.answers.length, total_accumulated: ent.answers.length,
+    not_found: result.answers.length - good, mode: result.mode, skipped: result.skipped || 0
+  } });
 });
 
 /* ------------------------------------------------------------------ stats + quiz history (per student) */
@@ -933,9 +947,37 @@ app.post(['/api/summary', '/api/summary/batch'], aiRate);
 
 app.get('/api/summary/:id', (req, res, next) => myMaterials().some(m => m.id === req.params.id) ? next() : res.json({ units: {}, modules: {} })); // students only see their own summaries
 
+jobs.configure({
+  runAsUser: async (userId, task) => {
+    const response = await cloudStore.getAuthUser(userId);
+    const authUser = response && (response.user || response);
+    if (!authUser || authUser.id !== userId) throw new Error('The account for this task could not be verified. Please sign in again.');
+    const confirmed = !!(authUser.email_confirmed_at || authUser.confirmed_at);
+    const user = {
+      id: authUser.id,
+      email: authUser.email || '',
+      name: (authUser.user_metadata && (authUser.user_metadata.full_name || authUser.user_metadata.name)) || '',
+      admin: confirmed && ADMINS.includes(String(authUser.email || '').toLowerCase())
+    };
+    const data = await loadCloudRequestData(user);
+    return als.run({ uid: user.id, user, ...data }, task);
+  }
+});
+
 // the real engines: summary, quiz, tutor, outline. They read materials through these two scoped loaders.
 F.register(app, {
   groq,
+  jobs,
+  userId: () => ctx().uid,
+  countUsage: kind => bump(ctx().uid, kind),
+  ensureAllowance: kind => {
+    const { plan, u } = limitsFor(ctx().uid);
+    const used = u.usage[kind] || 0;
+    if (used >= plan[kind]) {
+      const label = kind === 'quiz' ? 'quizzes' : 'AI chats';
+      throw new Error(`Plan limit reached (${used}/${plan[kind]} ${label}). Upgrade to Starter (N${STARTER_PRICE.toLocaleString()}/month) to continue.`);
+    }
+  },
   loadMaterials: () => myMaterials(),
   loadHistory: () => HIST.get().filter(h => h.user_id === ctx().uid),
   ...(CLOUD_DATA ? {
@@ -950,6 +992,20 @@ F.register(app, {
   } : {})
 });
 
+app.get('/api/jobs/:id', asyncHandler(async (req, res) => {
+  if (!CLOUD_DATA) return res.status(503).json({ error: 'Background jobs require Supabase server storage.' });
+  const job = await jobs.getJob(ctx().uid, req.params.id);
+  if (!job) return res.status(404).json({ error: 'Task not found.' });
+  const after = Math.max(0, Number.parseInt(req.query.after, 10) || 0);
+  const rows = await jobs.eventsFor(ctx().uid, job.id, after);
+  res.json({
+    status: job.status,
+    error: job.status === 'failed' ? job.error : null,
+    events: rows.flatMap(row => Array.isArray(row.events) ? row.events : []),
+    after: rows.length ? rows[rows.length - 1].seq : after
+  });
+}));
+
 /* ------------------------------------------------------------------ errors */
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 app.use((err, req, res, next) => {
@@ -959,6 +1015,8 @@ app.use((err, req, res, next) => {
 });
 
 if (require.main === module) {
+  if (CLOUD_DATA) jobs.start();
+  else console.warn('[ai-jobs] background AI jobs are disabled without Supabase server storage.');
   app.listen(PORT, () => {
     console.log(`\nCourseMate running on ${APP_URL}`);
     console.log(`  AI key:      ${GROQ_KEY ? 'set' : 'MISSING (add GROQ_API_KEY)'}`);

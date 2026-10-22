@@ -387,7 +387,7 @@ async function tutor({ groq, m, b, emit }) {
 }
 
 /* ------------------------------------------------------------ routes */
-function register(app, { groq, loadMaterials, loadHistory, loadSummary, saveSummary }) {
+function register(app, { groq, loadMaterials, loadHistory, loadSummary, saveSummary, jobs, userId, countUsage, ensureAllowance }) {
   const jsonErr = (res, code, msg) => res.status(code).json({ error: msg });
   const fail = (res, sent, e) => { console.error(e); const msg = AI.friendly(e); if (sent) { try { res.write(JSON.stringify({ type: 'error', error: msg, kind: e && e.kind, waitSec: e && e.waitSec }) + '\n'); res.end(); } catch {} } else res.status(e && e.kind === 'rate' ? 429 : 500).json({ error: msg, kind: e && e.kind }); };
   const storeFor = async id => {
@@ -412,50 +412,35 @@ function register(app, { groq, loadMaterials, loadHistory, loadSummary, saveSumm
   });
   app.get('/api/summary/:id', async (req, res) => { const s = await storeFor(req.params.id); res.json({ units: s.units, modules: s.modules }); });
   const resultFor = (it) => ({ modules: it.m.outline.modules.map(mod => ({ n: mod.n, title: mod.title || (it.store.modules[mod.n] && it.store.modules[mod.n].title) || '', overview: (it.store.modules[mod.n] && it.store.modules[mod.n].overview) || '', units: mod.units.map(u => it.store.units[`${mod.n}.${u.n}`]).filter(Boolean) })) });
-  async function summaryRun(req, res, ids, scope) {
-    if (!ids.length || !ids[0]) return jsonErr(res, 400, 'Select a course material first.');
-    res.setHeader('Content-Type', 'application/x-ndjson');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('X-Accel-Buffering', 'no');
-    res.flushHeaders && res.flushHeaders();
-    const emit = o => { try { res.write(JSON.stringify(o) + '\n'); } catch {} };
-    let closed = false;
-    const beat = setInterval(() => emit({ type: 'ping' }), 5000);
-    res.on('close', () => { closed = true; clearInterval(beat); });
-    try {
-      emit({ type: 'step', key: 'prepare', title: 'Preparing your course material', done: false, desc: 'Loading your PDF and finding its modules and units.' });
-      const items = [];
-      for (const id of ids) {
-        const m = await loadMaterial(loadMaterials(), id);
-        if (!m) throw new Error('Course material not found. Return to Materials and select one of your uploaded PDFs.');
-        items.push({ m, store: await storeFor(id), scope });
-      }
-      const courses = await SE.runBatch({ groq, items, regenerate: !!(req.body || {}).regenerate, emit, aborted: () => closed });
-      const stores = {}; items.forEach(it => { stores[it.m.row.id] = { units: it.store.units, modules: it.store.modules }; });
-      const first = items[0];
-      clearInterval(beat);
-      emit({ type: 'done', courses, stores, result: resultFor(first), units: first.store.units, modules: first.store.modules }); res.end();
-    } catch (e) {
-      clearInterval(beat);
-      console.error(e);
-      const msg = AI.friendly(e);
-      emit({ type: 'error', error: msg, kind: e && e.kind, waitSec: e && e.waitSec });
-      res.end();
+  async function summaryRun(payload, emit) {
+    const ids = [payload.material_id];
+    const scope = payload.scope || {};
+    if (!ids.length || !ids[0]) throw new Error('Select a course material first.');
+    emit({ type: 'step', key: 'prepare', title: 'Preparing your course material', done: false, desc: 'Loading your PDF and finding its modules and units.' });
+    const items = [];
+    for (const id of ids) {
+      const m = await loadMaterial(loadMaterials(), id);
+      if (!m) throw new Error('Course material not found. Return to Materials and select one of your uploaded PDFs.');
+      items.push({ m, store: await storeFor(id), scope });
     }
+    const courses = await SE.runBatch({ groq, items, regenerate: !!payload.regenerate, emit, aborted: () => false });
+    const stores = {}; items.forEach(it => { stores[it.m.row.id] = { units: it.store.units, modules: it.store.modules }; });
+    const first = items[0];
+    emit({ type: 'done', courses, stores, result: resultFor(first), units: first.store.units, modules: first.store.modules });
   }
-  app.post('/api/summary', (req, res) => { const { material_id, scope } = req.body || {}; summaryRun(req, res, [material_id], scope || {}); });
-  app.post('/api/quiz/generate', async (req, res) => {
-    const b = req.body || {}; let sent = false;
-    try {
-      const count = Math.min(60, Math.max(20, parseInt(b.count, 10) || 20));
-      const level = ['mixed', 'easy', 'medium', 'hard'].includes(b.level || b.difficulty) ? (b.level || b.difficulty) : 'mixed';
-      const m = await loadMaterial(loadMaterials(), b.material_id);
-      if (!m) return jsonErr(res, 404, 'Go to Materials and upload a PDF first');
-      const emit = ndjson(res); sent = true;
-      const quiz = await generateQuiz({ groq, m, count, level, topic: flat(b.topic).slice(0, 120), emit });
-      emit({ type: 'done', quiz }); res.end();
-    } catch (e) { fail(res, sent, e); }
-  });
+  jobs.register('summary', summaryRun);
+
+  async function quizJob(payload, emit) {
+    await ensureAllowance('quiz');
+    const count = Math.min(60, Math.max(20, parseInt(payload.count, 10) || 20));
+    const level = ['mixed', 'easy', 'medium', 'hard'].includes(payload.level || payload.difficulty) ? (payload.level || payload.difficulty) : 'mixed';
+    const m = await loadMaterial(loadMaterials(), payload.material_id);
+    if (!m) throw new Error('Go to Materials and upload a PDF first');
+    const quiz = await generateQuiz({ groq, m, count, level, topic: flat(payload.topic).slice(0, 120), emit });
+    await countUsage('quiz');
+    emit({ type: 'done', quiz });
+  }
+  jobs.register('quiz', quizJob);
   app.get('/api/tutor/intro/:id', async (req, res) => {
     try { const m = await loadMaterial(loadMaterials(), req.params.id); if (!m) return jsonErr(res, 404, 'Material not found');
       res.json({ title: m.row.title, pages: m.outline.pages, structured: m.outline.structured,
@@ -463,26 +448,21 @@ function register(app, { groq, loadMaterials, loadHistory, loadSummary, saveSumm
     } catch (e) { jsonErr(res, 500, e.message); }
   });
   const tutorRoute = async (req, res) => {
-    const b = req.body || {}; let sent = false, heartbeat;
+    const b = req.body || {}; let sent = false;
     try {
       const message = flat(b.message).slice(0, 1500);
       if (!message && !['unit', 'quizme'].includes(b.mode)) return jsonErr(res, 400, 'Type a question first');
-      const rows = loadMaterials();
-      if (!rows.some(row => row.id === b.material_id)) return jsonErr(res, 404, 'Go to Materials and upload a PDF first');
+      const m = await loadMaterial(loadMaterials(), b.material_id);
+      if (!m) return jsonErr(res, 404, 'Go to Materials and upload a PDF first');
       const emit = ndjson(res); sent = true;
-      emit({ type: 'step', key: 'load', title: 'Preparing your course material', done: false, desc: 'I’m loading the PDF text for your tutor request.' });
-      heartbeat = setInterval(() => emit({ type: 'ping' }), 10000);
-      res.on('close', () => clearInterval(heartbeat));
-      const m = await loadMaterial(rows, b.material_id);
-      emit({ type: 'step', key: 'load', title: 'Preparing your course material', done: true, desc: 'Your PDF is ready. I’m working on your question.' });
       const r = await tutor({ groq, m, b: { ...b, message }, emit });
-      emit({ type: 'done', covered: r.covered, topic: r.topic || '' });
-      res.end();
+      emit({ type: 'done', covered: r.covered, topic: r.topic || '' }); res.end();
     } catch (e) { fail(res, sent, e); }
-    finally { clearInterval(heartbeat); }
   };
-  app.post('/api/tutor', tutorRoute);
-  app.post('/api/chat', tutorRoute);
+  app.post('/api/summary', queueJob('summary'));
+  app.post('/api/quiz/generate', queueJob('quiz'));
+  app.post('/api/tutor', queueJob('tutor'));
+  app.post('/api/chat', queueJob('tutor'));
 
 }
 module.exports = { register };
