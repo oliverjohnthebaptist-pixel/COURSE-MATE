@@ -40,7 +40,6 @@ const plabel = (n, approx) => (approx ? '~P.' : 'P.') + n;
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 /* ------------------------------------------------------------ material + structure */
-// Many PDFs repeat the same title line on every page. Remove it so it never pollutes prompts, quotes or search.
 function findHeader(pages) {
   const N = pages.length; if (N < 6) return '';
   const words = pages.map(t => String(t).split(/\s+/).filter(Boolean));
@@ -64,7 +63,7 @@ async function loadMaterial(rows, id) {
       const n = head ? head.split(' ').length : 0;
       const pages = raw.pages.map(t => { if (!head) return t; const w = String(t).split(/\s+/).filter(Boolean); return w.slice(0, n).join(' ') === head ? w.slice(n).join(' ') : t; });
       let outline = O.buildOutline(raw.pages);
-      if (!outline.structured) {                       // no Module/Unit markers: split into parts so the feature still works
+      if (!outline.structured) {
         const N = raw.pages.length, k = Math.max(1, Math.min(8, Math.ceil(raw.pages.join('').length / 14000))), per = Math.ceil(N / k), units = [];
         for (let i = 0; i < N; i += per) units.push({ n: units.length + 1, title: `Pages ${i + 1}-${Math.min(N, i + per)}`, start: i + 1, end: Math.min(N, i + per), sections: [] });
         outline = { structured: false, modules: [{ n: 1, title: '', start: 1, end: N, units }], pages: N };
@@ -88,7 +87,6 @@ const whereIs = (outline, page) => {
 };
 const findUnit = (outline, mn, un) => { const m = outline.modules.find(x => x.n === +mn); return m ? { m, u: m.units.find(x => x.n === +un) } : {}; };
 
-// the text of a unit, balanced across its sections (or pages), as a prompt block
 function unitMaterial(m, unit, budget = 11000) {
   const strip = t => { t = String(t).replace(/\s+/g, ' '); return (m.head ? t.split(m.head).join(' ') : t).replace(/\s+/g, ' ').trim(); };
   const blocks = [];
@@ -107,7 +105,7 @@ function unitMaterial(m, unit, budget = 11000) {
   return blocks.join('\n\n');
 }
 
-/* ------------------------------------------------------------ SUMMARY (per module / unit / section) */
+/* ------------------------------------------------------------ SUMMARY */
 const SUM_SYS = 'You summarise course material using ONLY the text provided. Never add outside facts. Write clearly for a university student. Output one JSON object and nothing else.';
 
 async function summariseUnit({ groq, m, mod, unit }) {
@@ -212,7 +210,6 @@ function randomWindow(page, max = 1600) {
   for (let i = start; i < ss.length && (out + ss[i]).length < max; i++) out += (out ? ' ' : '') + ss[i];
   return out || ss.slice(start).join(' ').slice(0, max);
 }
-// random pages spread over the WHOLE document (one random pick from each equal slice)
 function pickPages(idx, count, topic) {
   let pool = idx.pages.filter(goodPage);
   if (!pool.length) pool = idx.pages.filter(p => p.text.length > 300);
@@ -254,7 +251,7 @@ async function generateQuiz({ groq, m, count, level, topic, emit }) {
   const pages = pickPages(idx, Math.ceil(count * 1.4), topic);
   if (!pages.length) throw new Error('This material has no readable text to build a quiz from.');
   const plan0 = levelPlan(pages.length, level);
-  const pairs = shuffle(pages.map((p, i) => ({ p, l: plan0[i] })));      // random order, so questions come from everywhere
+  const pairs = shuffle(pages.map((p, i) => ({ p, l: plan0[i] })));
   pages.splice(0, pages.length, ...pairs.map(x => x.p)); const plan = pairs.map(x => x.l);
   const span = pages.map(x => x.n).sort((a, b) => a - b);
   emit({ type: 'step', key: 'pick', title: `Choosing random passages from ${row.title}`, done: true,
@@ -284,7 +281,7 @@ async function generateQuiz({ groq, m, count, level, topic, emit }) {
   const breakdown = { easy: 0, medium: 0, hard: 0 }; questions.forEach(q => breakdown[q.level]++);
   emit({ type: 'step', key: 'write', title: 'Writing and checking questions', done: true,
     desc: questions.length ? `Your quiz is ready: ${questions.length} questions (${breakdown.easy} easy, ${breakdown.medium} medium, ${breakdown.hard} hard), each with an explanation and its page.` : 'I could not build questions from this material.' });
-  if (!questions.length) throw (aiErr || new Error('Could not build questions from this material. Try another topic or click Generate again.'));   // show the REAL reason (busy / key) instead of a vague message
+  if (!questions.length) throw (aiErr || new Error('Could not build questions from this material. Try another topic or click Generate again.'));
   return { id: uid(), material_id: row.id, title: row.title, level, count: questions.length, breakdown, questions };
 }
 
@@ -316,7 +313,6 @@ async function tutor({ groq, m, b, emit }) {
   const topic = flat(b.topic || '');
   const P = n => plabel(n, info.approx);
 
-  // ---- explain a whole unit
   if (mode === 'unit') {
     const { m: mod, u } = findUnit(outline, b.module, b.unit);
     if (!u) { emit({ type: 'token', text: 'I could not find that unit in this material.' }); return { covered: false }; }
@@ -329,7 +325,6 @@ async function tutor({ groq, m, b, emit }) {
     return { covered: true, topic: `Module ${mod.n} Unit ${u.n}: ${u.title}` };
   }
 
-  // ---- quiz me: the tutor asks the student a question from the material
   if (mode === 'quizme') {
     emit({ type: 'step', key: 'search', title: 'Choosing a question for you', done: false, desc: topic ? `I'm looking in your PDF for something about: ${shortText(topic, 80)}` : 'I\'m picking a random page from your PDF.' });
     let pages;
@@ -346,7 +341,6 @@ async function tutor({ groq, m, b, emit }) {
     return { covered: true };
   }
 
-  // ---- grade the student's answer to the pending question
   if (mode === 'grade') {
     const ch = b.challenge || {};
     const pgs = (ch.pages || []).map(n => idx.pages.find(p => p.n === +n)).filter(Boolean);
@@ -362,7 +356,6 @@ async function tutor({ groq, m, b, emit }) {
     return { covered: true };
   }
 
-  // ---- normal chat / simpler / example
   const prevUser = [...history].reverse().find(h => h.role === 'user');
   const base = topic || (message.split(/\s+/).length < 7 && prevUser ? `${prevUser.content} ${message}` : message);
   emit({ type: 'step', key: 'search', title: `Searching ${row.title}`, done: false, desc: `I'm searching the uploaded PDF for: ${shortText(base, 90)}` });
@@ -378,7 +371,7 @@ async function tutor({ groq, m, b, emit }) {
     emit({ type: 'sources', pages: found.top.map(x => P(x.page.n)) });
     system = TUTOR_SYS + (MODE_NOTE[mode] ? '\n' + MODE_NOTE[mode] : '');
     user = `COURSE MATERIAL EXCERPTS:\n${ctx}\n\nSTUDENT ${mode === 'chat' ? 'QUESTION' : 'REQUEST'}: ${message}`;
-  } else { system = TUTOR_GENERAL; user = message; }  // always answer: general knowledge like other AI assistants
+  } else { system = TUTOR_GENERAL; user = message; }
   emit({ type: 'step', key: 'answer', title: 'Writing the answer', done: false, desc: covered ? 'I\'m explaining this using the pages found above.' : 'This is not clearly in your PDF, so I\'m answering from general knowledge.' });
   await streamCompletion(groq, [{ role: 'system', content: system }, ...history, { role: 'user', content: user }], emit, covered ? 1400 : 1200, covered ? 0.35 : 0.6);
   emit({ type: 'step', key: 'answer', title: 'Writing the answer', done: true, desc: 'Answer complete.' });
@@ -460,32 +453,30 @@ function register(app, { groq, loadMaterials, loadHistory, loadSummary, saveSumm
     } catch (e) { fail(res, sent, e); }
   };
 
-  // FIX: define queueJob INSIDE register where jobs is available
+  // FIXED: correct enqueue signature (userId, type, payload)
   const queueJob = (type) => async (req, res) => {
     try {
-      // jobs.create is the standard method in your jobs system
-      // It returns a job id and runs summaryRun / quizJob / tutor in background
       const payload = req.body || {};
       if (!payload.material_id && req.params && req.params.id) payload.material_id = req.params.id;
       
-      if (jobs && typeof jobs.create === 'function') {
-        const job = await jobs.create(type, payload);
-        return res.json({ jobId: job.id || job.jobId, status: 'queued', type });
-      }
+      const uid = typeof userId === 'function' ? userId() : null;
+      if (!uid) return res.status(401).json({ error: 'Please log in again.' });
+
       if (jobs && typeof jobs.enqueue === 'function') {
-        const job = await jobs.enqueue(type, payload);
-        return res.json({ jobId: job.id || job.jobId, status: 'queued', type });
+        const jobId = await jobs.enqueue(uid, type, payload);
+        return res.json({ job_id: jobId, jobId: jobId, id: jobId, status: 'queued', type });
       }
-      // Fallback if jobs system not wired: run old direct handlers
+
+      // Fallback: run directly if queue not available
       if (type === 'summary') {
         const emit = ndjson(res);
         await summaryRun(payload, emit);
-        return;
+        return res.end();
       }
       if (type === 'quiz') {
         const emit = ndjson(res);
         await quizJob(payload, emit);
-        return;
+        return res.end();
       }
       if (type === 'tutor') {
         return tutorRoute(req, res);
@@ -501,6 +492,5 @@ function register(app, { groq, loadMaterials, loadHistory, loadSummary, saveSumm
   app.post('/api/quiz/generate', queueJob('quiz'));
   app.post('/api/tutor', queueJob('tutor'));
   app.post('/api/chat', queueJob('tutor'));
-
 }
 module.exports = { register };
