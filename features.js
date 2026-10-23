@@ -441,24 +441,30 @@ function register(app, { groq, loadMaterials, loadHistory, loadSummary, saveSumm
     } catch (e) { jsonErr(res, 500, e.message); }
   });
   const tutorRoute = async (req, res) => {
-    const b = req.body || {}; let sent = false;
+    const b = req.body || {}; let sent = false; let keepAlive = null;
     try {
       const message = flat(b.message).slice(0, 1500);
       if (!message && !['unit', 'quizme'].includes(b.mode)) return jsonErr(res, 400, 'Type a question first');
       const m = await loadMaterial(loadMaterials(), b.material_id);
       if (!m) return jsonErr(res, 404, 'Go to Materials and upload a PDF first');
       const emit = ndjson(res); sent = true;
+      keepAlive = setInterval(() => { try { res.write(': keepalive\n\n'); } catch {} }, 15000);
       const r = await tutor({ groq, m, b: { ...b, message }, emit });
-      emit({ type: 'done', covered: r.covered, topic: r.topic || '' }); res.end();
-    } catch (e) { fail(res, sent, e); }
+      clearInterval(keepAlive);
+      emit({ type: 'done', covered: r.covered, topic: r.topic || '' }); 
+      res.end();
+    } catch (e) { if (keepAlive) clearInterval(keepAlive); fail(res, sent, e); }
   };
 
-  // FIXED: correct enqueue signature (userId, type, payload)
   const queueJob = (type) => async (req, res) => {
     try {
       const payload = req.body || {};
       if (!payload.material_id && req.params && req.params.id) payload.material_id = req.params.id;
-      
+
+      if (type === 'tutor') {
+        return tutorRoute(req, res);
+      }
+
       const uid = typeof userId === 'function' ? userId() : null;
       if (!uid) return res.status(401).json({ error: 'Please log in again.' });
 
@@ -467,20 +473,9 @@ function register(app, { groq, loadMaterials, loadHistory, loadSummary, saveSumm
         return res.json({ job_id: jobId, jobId: jobId, id: jobId, status: 'queued', type });
       }
 
-      // Fallback: run directly if queue not available
-      if (type === 'summary') {
-        const emit = ndjson(res);
-        await summaryRun(payload, emit);
-        return res.end();
-      }
-      if (type === 'quiz') {
-        const emit = ndjson(res);
-        await quizJob(payload, emit);
-        return res.end();
-      }
-      if (type === 'tutor') {
-        return tutorRoute(req, res);
-      }
+      const emit = ndjson(res);
+      if (type === 'summary') { await summaryRun(payload, emit); return res.end(); }
+      if (type === 'quiz') { await quizJob(payload, emit); return res.end(); }
       return res.status(500).json({ error: 'Job queue not configured' });
     } catch (e) {
       console.error('queueJob error:', e);
