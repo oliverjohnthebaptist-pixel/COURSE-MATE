@@ -40,10 +40,13 @@ window.CM = (function () {
   async function stream(url, body, onEvent) {
     const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || ('Server error ' + r.status)); }
-    if (r.status === 202) {
+    // A queued background task: the server answers with plain JSON holding a job id (status 200 or 202).
+    const ctype = r.headers.get('content-type') || '';
+    if (r.status === 202 || /application\/json/i.test(ctype)) {
       const queued = await r.json().catch(() => ({}));
-      if (!queued.job_id) throw new Error('The server accepted the task but did not return its task ID.');
-      return waitJob(queued.job_id, onEvent);
+      const jobId = queued.job_id || queued.jobId || queued.id;
+      if (!jobId) throw new Error('The server accepted the task but did not return its task ID.');
+      return waitJob(jobId, onEvent);
     }
     if (!r.body) throw new Error('The server returned an empty response. Please try again.');
     const reader = r.body.getReader(), dec = new TextDecoder(); let buf = '', done = null;
@@ -157,5 +160,29 @@ window.CM = (function () {
   }
   const chip = (label, on, click) => `<button onclick="${click}" style="cursor:pointer;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:700;border:1px solid ${on ? '#2AF598' : '#1C3324'};background:${on ? '#2AF598' : '#111F18'};color:${on ? '#05210F' : '#8BA89A'}">${label}</button>`;
   const fmtDate = t => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+
+  // Shows the REAL logged-in student's name and initial in the top bar (replaces the fixed "Oliver" / "O").
+  async function personalise() {
+    try {
+      const bar = document.querySelector('.topbar');
+      if (!bar) return;
+      const r = await fetch('/api/me');
+      if (!r.ok) return;
+      const d = await r.json();
+      const u = (d && d.user) || {};
+      const full = String(u.name || '').trim() || String(u.email || '').split('@')[0] || '';
+      if (!full) return;
+      const first = full.split(/\s+/)[0];
+      const right = bar.querySelector(':scope > div:last-child');
+      if (!right) return;
+      const nameEl = right.querySelector('b');
+      if (nameEl) nameEl.textContent = first;
+      const avatar = right.querySelector(':scope > div:last-child');
+      if (avatar && avatar !== nameEl && !avatar.querySelector('b')) avatar.textContent = first.charAt(0).toUpperCase();
+    } catch {}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', personalise);
+  else personalise();
+
   return { esc, cleanTitle, materials, stream, waitJob, panel, tab, md, prefs, chip, fmtDate, uploader };
 })();
