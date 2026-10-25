@@ -354,6 +354,7 @@ async function verifyToken(token) {
   return user;
 }
 app.use('/api', async (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
   try {
     let user;
     if (!REQUIRE_AUTH) user = { id: 'dev', email: 'dev@local', name: 'Dev', admin: ADMINS.includes('dev@local') };
@@ -959,7 +960,7 @@ app.post('/api/quiz/clear', asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
-app.post('/api/quiz/generate', aiRate, gate('quiz', 'quizzes'), countOnSuccess('quiz'));
+app.post('/api/quiz/generate', aiRate, gate('quiz', 'quizzes'));
 app.post(['/api/tutor', '/api/chat'], aiRate, gate('chat', 'AI chats'), (req, res, next) => {
   if (req.body && !['unit', 'quizme'].includes(req.body.mode)) return countOnSuccess('chat')(req, res, next);
   next();
