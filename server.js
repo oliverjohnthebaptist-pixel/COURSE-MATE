@@ -231,9 +231,10 @@ E.getPages = async (row) => {
     try {
       const rows = await cloudStore.select('pdf_pages', { main_pdf_id: row.id });
       if (rows && rows.length) {
-        rows.sort((a, b) => a.page_number - b.page_number);
-        const pages = rows.map(r => r.page_text || '');
-        if (pages.length) return { pages, page_numbers: rows.map(r => r.page_number), scanned: false };
+               const byPage = new Map(rows.map(r => [Number(r.page_number), r.page_text || '']));
+        const lastPage = Math.max(Number(row.page_count) || 0, ...rows.map(r => Number(r.page_number) || 0));
+        const pages = Array.from({ length: lastPage }, (_, i) => byPage.get(i + 1) || '');
+        if (pages.length) return { pages, approx: false };
       }
     } catch (err) {
       console.warn('[getPages] pdf_pages fallback', err.message);
