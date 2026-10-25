@@ -1,7 +1,4 @@
-// CourseMate v1 backend
-// - Wires the real AI engines (tma_engine.js, features.js) that the old stub server never used
-// - Every student only sees their own PDFs / answers (Supabase login verified on the server)
-// - Free / Starter limits enforced on the SERVER (cannot be bypassed from the browser)
+// CourseMate v1 backend - FIXED FOR TIMEOUT + PAGE SPLIT (Option A)
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
@@ -9,6 +6,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
+const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
 const { AsyncLocalStorage } = require('async_hooks');
 const GroqLib = require('groq-sdk');
 const Groq = GroqLib.Groq || GroqLib.default || GroqLib;
@@ -19,7 +17,6 @@ const E = require('./tma_engine');
 const AI = require('./ai');
 const F = require('./features');
 
-/* ------------------------------------------------------------------ config */
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 const APP_URL = (process.env.APP_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
 const SB_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
@@ -27,17 +24,13 @@ const SB_KEY = process.env.SUPABASE_ANON_KEY || '';
 const SB_SERVICE = process.env.SUPABASE_SERVICE_KEY || '';
 const CLOUD_DATA = !!SB_SERVICE;
 const STARTER_PRICE = 4500;
-const REQUIRE_AUTH = !!SB_URL; // no SUPABASE_URL = local test mode (everyone is the same "dev" user)
+const REQUIRE_AUTH = !!SB_URL;
 const GROQ_KEY = process.env.GROQ_API_KEY || '';
-const GROQ_REQUEST_TIMEOUT_MS = process.env.GROQ_REQUEST_TIMEOUT_MS === undefined
-  ? 10 * 60 * 1000
-  : Number(process.env.GROQ_REQUEST_TIMEOUT_MS);
+const GROQ_REQUEST_TIMEOUT_MS = process.env.GROQ_REQUEST_TIMEOUT_MS === undefined ? 10 * 60 * 1000 : Number(process.env.GROQ_REQUEST_TIMEOUT_MS);
 const PRODUCTION = process.env.NODE_ENV === 'production';
 if (!Number.isSafeInteger(GROQ_REQUEST_TIMEOUT_MS) || GROQ_REQUEST_TIMEOUT_MS <= 0) {
   throw new Error('GROQ_REQUEST_TIMEOUT_MS must be a positive integer number of milliseconds.');
 }
-// Private owner access: emails listed in ADMIN_EMAILS (set on the server only) get unlimited everything.
-// Nothing in the website mentions this, there is no admin page, and a student cannot grant it to themselves.
 const ADMINS = (process.env.ADMIN_EMAILS || '').toLowerCase().split(',').map(x => x.trim()).filter(Boolean);
 const FEEDBACK_RECIPIENTS = ADMINS.length ? ADMINS : ['oliverjohnthebaptist@gmail.com'];
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
@@ -62,14 +55,12 @@ if (PRODUCTION) {
   console.warn('[config] Supabase auth is disabled; local development mode only.');
 }
 
-// Pricing model (kept exactly as agreed): Free = hook, Starter = revenue. Pro is NOT implemented yet.
 const UNLIMITED = 999999;
 const PLANS = {
   free:    { name: 'Free',    pdf: 3, tma: 15, chat: 20,        quiz: 20,  price: 0 },
   starter: { name: 'Starter', pdf: 7, tma: 70, chat: UNLIMITED, quiz: 100, price: STARTER_PRICE }
 };
 
-/* ------------------------------------------------------------------ tiny JSON store (atomic writes) */
 function makeStore(file, def) {
   let data = def;
   if (fs.existsSync(file)) {
@@ -89,7 +80,7 @@ const localMATS = makeStore(path.join(DATA_DIR, 'materials.json'), []);
 const localHIST = makeStore(path.join(DATA_DIR, 'tma_history.json'), []);
 const localUSERS = makeStore(path.join(DATA_DIR, 'users.json'), {});
 const localPAYMENT_SUBMISSIONS = makeStore(path.join(DATA_DIR, 'payment_submissions.json'), []);
-const QUIZ_FILE = path.join(DATA_DIR, 'quiz_results.json'); // same file name features.js uses
+const QUIZ_FILE = path.join(DATA_DIR, 'quiz_results.json');
 const SUM_FILE = path.join(DATA_DIR, 'summaries.json');
 function migrateLegacyFile(name, destination) {
   const legacy = path.join(ROOT, name);
@@ -162,7 +153,6 @@ const PAYMENT_SUBMISSIONS = {
   }
 };
 
-/* ------------------------------------------------------------------ users, plans, usage */
 const als = new AsyncLocalStorage();
 const ctx = () => als.getStore() || {};
 
@@ -178,7 +168,7 @@ function getUser(uid, email) {
   return all[uid];
 }
 function planOf(u) {
-  if (u.plan === 'starter' && u.plan_expires && Date.now() > u.plan_expires) return 'free'; // lapsed
+  if (u.plan === 'starter' && u.plan_expires && Date.now() > u.plan_expires) return 'free';
   return u.plan in PLANS ? u.plan : 'free';
 }
 const VIP = { name: 'Starter', pdf: UNLIMITED, tma: UNLIMITED, chat: UNLIMITED, quiz: UNLIMITED, price: 0 };
@@ -194,7 +184,6 @@ async function bump(uid, kind, n = 1) {
   u.usage[kind] = (u.usage[kind] || 0) + n;
   await USERS.save();
 }
-
 function limitHit(res, what, used, max, extra = '') {
   return res.status(402).json({
     error: `Plan limit reached (${used}/${max} ${what}). ${extra}Upgrade to Starter (N${STARTER_PRICE.toLocaleString()}/month) to continue.`,
@@ -202,7 +191,57 @@ function limitHit(res, what, used, max, extra = '') {
   });
 }
 
-/* ------------------------------------------------------------------ app + middleware */
+// --- NEW: helper to split PDF into pages and save to pdf_pages table (Option A) ---
+async function splitPdfAndSave(pdfBuffer, mainPdfId) {
+  if (!CLOUD_DATA) return 0;
+  try {
+    const doc = await pdfjsLib.getDocument({ data: pdfBuffer }).promise;
+    const total = doc.numPages;
+    let saved = 0;
+    const batch = [];
+    for (let i = 1; i <= total; i++) {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
+      const text = content.items.map(s => s.str || '').join(' ').trim();
+      if (text.length > 20) {
+        batch.push({ main_pdf_id: String(mainPdfId), page_number: i, page_text: text.slice(0, 8000) });
+      }
+      // insert in batches of 30 to avoid timeout
+      if (batch.length >= 30) {
+        await cloudStore.insert('pdf_pages', batch);
+        saved += batch.length;
+        batch.length = 0;
+      }
+    }
+    if (batch.length) {
+      await cloudStore.insert('pdf_pages', batch);
+      saved += batch.length;
+    }
+    return saved;
+  } catch (e) {
+    console.error('[split] failed', e);
+    return 0;
+  }
+}
+
+// --- NEW: Patch E.getPages to use split pages first (fixes timeout) ---
+const originalGetPages = E.getPages.bind(E);
+E.getPages = async (row) => {
+  if (CLOUD_DATA && row && row.id) {
+    try {
+      const rows = await cloudStore.select('pdf_pages', { main_pdf_id: row.id });
+      if (rows && rows.length) {
+        rows.sort((a, b) => a.page_number - b.page_number);
+        const pages = rows.map(r => r.page_text || '');
+        if (pages.length) return { pages, page_numbers: rows.map(r => r.page_number), scanned: false };
+      }
+    } catch (err) {
+      console.warn('[getPages] pdf_pages fallback', err.message);
+    }
+  }
+  return originalGetPages(row);
+};
+
 const app = express();
 const asyncHandler = handler => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 app.disable('x-powered-by');
@@ -211,7 +250,6 @@ app.use((req, res, next) => { res.setHeader('X-Content-Type-Options', 'nosniff')
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
-/* ---- static files: ONLY the public site. (The old server exposed the whole project folder incl. uploaded PDFs and data.) */
 const sendFile = f => (req, res) => fs.existsSync(f) ? res.sendFile(f) : res.status(404).send('Not found');
 app.get('/', sendFile(path.join(ROOT, 'index.html')));
 ['index.html', 'login.html', 'signup.html', 'logo.png', 'logo-mascot.webp'].forEach(f => app.get('/' + f, sendFile(path.join(ROOT, f))));
@@ -226,19 +264,11 @@ app.get(['/payment.html', '/public/html/payment.html'], page('payment.html'));
 });
 app.get('/html/:file', (req, res) => page(path.basename(req.params.file))(req, res));
 
-// --- ADMIN CONFIG ---
-// Your admin email MUST be in .env file: ADMIN_EMAILS=oliverjohnthebaptist@gmail.com
-// This gives you unlimited PDF/TMA/chat/quiz (VIP) - already handled by isOwner() below
 const ADMIN_EMAIL = "oliverjohnthebaptist@gmail.com";
 
-// Profile completion check - students must have matric/department
-// Frontend will call /api/me and redirect to complete-profile.html if incomplete
 app.get('/api/profile/check', (req, res) => {
-  // This route is behind auth middleware, so ctx().uid exists
-  // It will be added after the auth middleware, so we define handler here but register later
   res.json({ ok: true });
 });
-/* ---- health (public). ?deep=1 makes one tiny real AI call so you can confirm the AI is truly active. */
 const groq = GROQ_KEY ? new Groq({ apiKey: GROQ_KEY, timeout: GROQ_REQUEST_TIMEOUT_MS }) : null;
 app.get('/api/health', async (req, res) => {
   const out = { ok: true, engine: E.ENGINE_VERSION, ai_key: !!GROQ_KEY, ai: AI.status(), login_check: REQUIRE_AUTH };
@@ -249,7 +279,6 @@ app.get('/api/health', async (req, res) => {
   res.json(out);
 });
 
-/* ---- Manual payment activation */
 async function activateStarter(uid, ref, email) {
   let u;
   if (CLOUD_DATA) {
@@ -265,7 +294,7 @@ async function activateStarter(uid, ref, email) {
   if (ref && u.refs.includes(ref)) return false;
   const base = u.plan === 'starter' && u.plan_expires > Date.now() ? u.plan_expires : Date.now();
   u.plan = 'starter'; u.plan_expires = base + 30 * 24 * 3600 * 1000;
-  u.usage = { tma: 0, chat: 0, quiz: 0 }; // fresh Starter allowance each paid month
+  u.usage = { tma: 0, chat: 0, quiz: 0 };
   if (ref) u.refs.push(ref);
   if (CLOUD_DATA) {
     await cloudStore.upsert('cm_user_state', [{
@@ -274,7 +303,7 @@ async function activateStarter(uid, ref, email) {
   } else {
     await USERS.save();
   }
-  if (SB_URL && SB_SERVICE) { // best effort: keep profiles.plan (read by the dashboard) in sync
+  if (SB_URL && SB_SERVICE) {
     fetch(`${SB_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(uid)}`, {
       method: 'PATCH', headers: { apikey: SB_SERVICE, Authorization: 'Bearer ' + SB_SERVICE, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
       body: JSON.stringify({ plan: 'starter' })
@@ -283,7 +312,6 @@ async function activateStarter(uid, ref, email) {
   console.log(`[pay] Starter activated for ${uid} ref=${ref}`);
   return true;
 }
-/* ---- everything else under /api needs a logged-in student */
 const tokCache = new Map();
 async function loadCloudRequestData(user) {
   const [userRows, materialRows, historyRows, paymentRows, quizRows, summaryRows] = await Promise.all([
@@ -318,7 +346,7 @@ async function verifyToken(token) {
   if (!r.ok) return null;
   const j = await r.json();
   if (!j || !j.id) return null;
-  const confirmed = !!(j.email_confirmed_at || j.confirmed_at); // owner access needs a CONFIRMED email, so nobody can sign up with your address and get in
+  const confirmed = !!(j.email_confirmed_at || j.confirmed_at);
   const user = { id: j.id, email: j.email || '', name: (j.user_metadata && (j.user_metadata.full_name || j.user_metadata.name)) || '',
     admin: confirmed && ADMINS.includes(String(j.email || '').toLowerCase()) };
   tokCache.set(token, { user, exp: Date.now() + 5 * 60 * 1000 });
@@ -345,7 +373,6 @@ app.use('/api', async (req, res, next) => {
   }
 });
 
-/* ---- simple per-student rate limit on AI routes (protects your Groq bill) */
 const hits = new Map();
 function aiRate(req, res, next) {
   if (!groq) return res.status(503).json({ error: 'AI is not configured yet (missing GROQ_API_KEY).' });
@@ -355,8 +382,6 @@ function aiRate(req, res, next) {
   if (arr.length >= 60) return res.status(429).json({ error: 'Too many requests. Please wait a few minutes.' });
   arr.push(now); hits.set(k, arr); next();
 }
-// count usage only if the request really succeeded. Streamed answers can fail AFTER the 200 header was sent,
-// so we also watch for an {"type":"error"} line: a failed generation must never use up a student's allowance.
 function countOnSuccess(kind) {
   return (req, res, next) => {
     const uid = ctx().uid; let failed = false; let ending = false;
@@ -387,7 +412,6 @@ function gate(kind, label) {
   };
 }
 
-/* ------------------------------------------------------------------ account */
 app.get('/api/me', (req, res) => {
   const { key, plan, u } = limitsFor(ctx().uid);
   const isAdmin = isOwner();
@@ -413,7 +437,6 @@ app.post('/api/feedback', asyncHandler(async (req, res) => {
   if (!RESEND_API_KEY || !RESEND_FROM_EMAIL) {
     return res.status(503).json({ error: 'Feedback email is not configured yet. Please contact the site administrator.' });
   }
-
   const uid = ctx().uid;
   const now = Date.now();
   const lastRequest = feedbackRequests.get(uid) || 0;
@@ -421,7 +444,6 @@ app.post('/api/feedback', asyncHandler(async (req, res) => {
     return res.status(429).json({ error: 'Please wait 30 seconds before sending more feedback.' });
   }
   feedbackRequests.set(uid, now);
-
   const user = ctx().user || {};
   const origin = req.get('origin') || APP_URL;
   const sender = [user.name, user.email].filter(Boolean).join(' — ') || 'Signed-in student';
@@ -433,7 +455,6 @@ app.post('/api/feedback', asyncHandler(async (req, res) => {
     '',
     message
   ].join('\n');
-
   let response;
   try {
     response = await fetch('https://api.resend.com/emails', {
@@ -456,14 +477,12 @@ app.post('/api/feedback', asyncHandler(async (req, res) => {
     console.error('[feedback] email provider request failed', error);
     return res.status(502).json({ error: 'Feedback could not be delivered right now. Please try again shortly.' });
   }
-
   if (!response.ok) {
     feedbackRequests.delete(uid);
     const providerMessage = await response.text().catch(() => '');
     console.error(`[feedback] email provider returned HTTP ${response.status}: ${providerMessage.slice(0, 500)}`);
     return res.status(502).json({ error: 'Feedback could not be delivered right now. Please try again shortly.' });
   }
-
   res.json({ ok: true });
 }));
 
@@ -478,7 +497,6 @@ app.post('/api/profile/complete', asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
-/* ---- manual bank transfer payment */
 const evidenceUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 8 * 1024 * 1024, files: 1 },
@@ -681,7 +699,6 @@ app.post('/api/pay/redeem', asyncHandler(async (req, res) => {
   res.json({ ok: true, plan: 'starter' });
 }));
 
-/* ------------------------------------------------------------------ materials (real PDF handling) */
 const storage = CLOUD_DATA ? multer.memoryStorage() : multer.diskStorage({
   destination: UPLOAD_DIR,
   filename: (req, file, cb) => cb(null, Date.now() + '-' + String(file.originalname).replace(/[^\w.\- ]+/g, '_'))
@@ -694,6 +711,8 @@ app.get('/api/materials/:id', (req, res) => {
   const m = myMaterials().find(x => x.id === req.params.id);
   m ? res.json(publicRow(m)) : res.status(404).json({ error: 'Not found' });
 });
+
+app.get('/api/materials', (req, res) => res.json({ materials: myMaterials().map(publicRow) }));
 
 app.post('/api/materials/upload-url', async (req, res) => {
   if (!CLOUD_DATA) return res.json({ direct: false });
@@ -764,6 +783,12 @@ app.post('/api/materials/complete-upload', async (req, res) => {
     };
     MATS.get().push(row);
     await MATS.save();
+
+    // --- NEW: Split into pdf_pages in background (does not block response) ---
+    splitPdfAndSave(pdfBuffer, id).then(count => {
+      console.log(`[split] Saved ${count} pages for ${id}`);
+    }).catch(e => console.error('[split] bg failed', e));
+
     res.json({ success: true, id, title: row.title, pages: row.page_count, material: publicRow(row) });
   } catch (error) {
     try { await cloudStore.removeObject('coursemate-files', objectPath); }
@@ -788,7 +813,6 @@ app.post('/api/materials/upload', (req, res, next) => {
       if (!CLOUD_DATA) fs.unlinkSync(f.path);
       return res.status(400).json({ error: 'Only real PDF files are allowed.' });
     }
-    // real page count + text check (fast: renders only page 1)
     let pages = 0, firstText = '';
     try { const d = await pdfParse(pdfBuffer, { max: 1 }); pages = d.numpages || 0; firstText = d.text || ''; }
     catch (e) {
@@ -800,7 +824,7 @@ app.post('/api/materials/upload', (req, res, next) => {
     const dup = myMaterials().find(m => m.hash === hash);
     if (dup) {
       if (!CLOUD_DATA) try { fs.unlinkSync(f.path); } catch {}
-      return res.status(409).json({ error: `You already uploaded this PDF (\"${dup.title}\"). It is in your Safe Box.`, duplicate: true, id: dup.id });
+      return res.status(409).json({ error: `You already uploaded this PDF ("${dup.title}"). It is in your Safe Box.`, duplicate: true, id: dup.id });
     }
     const id = Date.now().toString(36) + crypto.randomBytes(3).toString('hex');
     const fileName = CLOUD_DATA ? String(f.originalname).replace(/[^\w.\- ]+/g, '_') : path.basename(f.path);
@@ -815,8 +839,10 @@ app.post('/api/materials/upload', (req, res, next) => {
     if (CLOUD_DATA) await cloudStore.upload('coursemate-files', storagePath, pdfBuffer, 'application/pdf');
     MATS.get().push(row);
     await MATS.save();
-    // warm the page cache in the background for text PDFs so the first TMA / summary is fast
-    if (!scanned) E.getPages(row).then(async r => { row.char_count = r.pages.join('').length; await MATS.save(); }).catch(error => console.error('[materials] could not cache PDF text length', error));
+    if (!scanned) {
+      splitPdfAndSave(pdfBuffer, id).catch(()=>{});
+      E.getPages(row).then(async r => { row.char_count = r.pages.join('').length; await MATS.save(); }).catch(error => console.error('[materials] could not cache PDF text length', error));
+    }
     res.json({ success: true, id: row.id, title: row.title, pages, material: publicRow(row) });
   } catch (e) {
     if (!CLOUD_DATA && f && f.path && fs.existsSync(f.path)) {
@@ -831,10 +857,8 @@ app.post('/api/materials/upload', (req, res, next) => {
   }
 });
 
-// Materials are permanent once uploaded (by design: the Safe Box never loses a student's PDF, and a deleted PDF would free a Free-plan slot).
 app.delete('/api/materials/:id', (req, res) => res.status(403).json({ error: 'Materials cannot be deleted once uploaded.' }));
 
-/* ------------------------------------------------------------------ TMA solver (REAL: engine + page-number evidence) */
 const mpOnly = multer().none();
 app.get('/api/tma/history/:id', (req, res) => {
   if (!myMaterials().some(m => m.id === req.params.id)) return res.json({ total: 0, answers: [] });
@@ -898,7 +922,6 @@ jobs.register('tma', async (payload, emit) => {
   } });
 });
 
-/* ------------------------------------------------------------------ stats + quiz history (per student) */
 app.get('/api/stats', (req, res) => {
   const mine = new Set(myMaterials().map(m => m.id)); const uid = ctx().uid; const { u } = limitsFor(uid);
   const hist = HIST.get().filter(h => h.user_id === uid);
@@ -936,16 +959,14 @@ app.post('/api/quiz/clear', asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
-/* ------------------------------------------------------------------ AI features (summary / quiz / tutor) with plan gates */
 app.post('/api/quiz/generate', aiRate, gate('quiz', 'quizzes'), countOnSuccess('quiz'));
 app.post(['/api/tutor', '/api/chat'], aiRate, gate('chat', 'AI chats'), (req, res, next) => {
-  // only real questions count as a chat; 'unit' / 'quizme' buttons are free helpers
   if (req.body && !['unit', 'quizme'].includes(req.body.mode)) return countOnSuccess('chat')(req, res, next);
   next();
 });
 app.post(['/api/summary', '/api/summary/batch'], aiRate);
 
-app.get('/api/summary/:id', (req, res, next) => myMaterials().some(m => m.id === req.params.id) ? next() : res.json({ units: {}, modules: {} })); // students only see their own summaries
+app.get('/api/summary/:id', (req, res, next) => myMaterials().some(m => m.id === req.params.id) ? next() : res.json({ units: {}, modules: {} }));
 
 jobs.configure({
   runAsUser: async (userId, task) => {
@@ -964,7 +985,6 @@ jobs.configure({
   }
 });
 
-// the real engines: summary, quiz, tutor, outline. They read materials through these two scoped loaders.
 F.register(app, {
   groq,
   jobs,
@@ -1006,7 +1026,6 @@ app.get('/api/jobs/:id', asyncHandler(async (req, res) => {
   });
 }));
 
-/* ------------------------------------------------------------------ errors */
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 app.use((err, req, res, next) => {
   if (err && err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ error: 'File too large (max 100MB).' });
